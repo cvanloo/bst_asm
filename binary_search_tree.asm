@@ -30,15 +30,18 @@ endstruc
 ;; BST *bst_make(Arena *)
 bst_make:
     ;; rdi -- Arena*
+    mov r12, rdi
+
     mov rsi, BST_size
     call arena_push
     ;; rax -- BST*
-    mov [rax+BST.arena], rdi
+    mov [rax+BST.arena], r12
     ret
 
 ;; void bst_clear(BST *)
 bst_clear:
     mov qword [rdi+BST.size], 0
+    ret
 
 ;; Entry *bst_insert(BST *, Entry)
 bst_insert:
