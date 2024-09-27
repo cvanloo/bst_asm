@@ -92,15 +92,15 @@ _find:
     test r9, r9
     jz .exit
 
-    mov r8, [rax+Node.key]
-    cmp r8, rsi
+    mov r8, [r9+Node.key]
+    cmp rsi, r8
     jl .less
     ;; >=
-    lea rax, [rax+Node.right]
+    lea rax, [r9+Node.right]
     jmp .find_loop
 
 .less:
-    lea rax, [rax+Node.left]
+    lea rax, [r9+Node.left]
     jmp .find_loop
 
 .exit:

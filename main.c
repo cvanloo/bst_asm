@@ -13,6 +13,8 @@ int main(int argc, char **argv) {
 
     BST *bst = bst_make(arena);
     bst_insert(bst, 5, v1);
+    bst_insert(bst, 1, v1);
+    bst_insert(bst, 7, v1);
 
     bst_clear(bst);
     arena_release(arena);
