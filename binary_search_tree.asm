@@ -5,6 +5,10 @@ BITS 64
 ;; pass INTEGER: rdi, rsi, rdx, rcx, r8, r9, stack...
 ;; return INTEGER: rax, rdx
 
+;; NOTE: If the return value is classified as MEMORY, a pointer to where the
+;;       value should go is passed as a 'secret' first parameter in rdi
+;;       (making all the other parameters move a position/register down)
+
 extern arena_push, arena_pos, arena_pop, arena_pop_to, arena_clear
 global bst_make, bst_clear, bst_insert, bst_find, bst_find_all, bst_inorder, bst_remove, bst_height, bst_size
 
@@ -211,7 +215,81 @@ bst_find_all:
     pop rbp
     ret
 
+;; void bst_inorder(BST *, Entry_Callback cb)
 bst_inorder:
+    ;; rdi -- BST*
+    ;; rsi -- callback
+    push rbp
+    mov rbp, rsp
+    sub rsp, 32
+    mov qword [rsp+24], 0 ;; -- number of elements on stack
+    ;;  [rsp+16]        -- top of stack
+    mov [rsp+8], rsi ;; -- callback
+    mov [rsp], rdi   ;; -- BST*
+
+    ;; we are using the arena as an actual stack here, to 'simulate' the recursive in-order traversal in an iterative way
+
+    mov rdi, [rsp]
+    mov r12, [rdi+BST.root] ;; r12 keeps track of  current node
+
+.inorder_loop:
+    mov rdi, [rsp+24]
+    test rdi, rdi
+    jz .check_next
+    mov rdi, [rsp+16]
+    mov rdi, [rdi]
+    cmp rdi, r12 ;; current == stack.peek()
+    jne .check_next
+
+    ;; callback(current_entry)
+    mov rdi, r12
+    call [rsp+8]
+
+    ;; stack.pop()
+    mov rdi, [rsp]
+    mov rdi, [rdi+BST.arena]
+    mov rsi, 8
+    call arena_pop
+    dec qword [rsp+24]
+    sub qword [rsp+16], 8
+
+    mov rdi, [r12+Node.right]
+    test rdi, rdi
+    jz .next_in_stack
+    mov r12, rdi
+    jmp .inorder_loop
+
+.next_in_stack:
+    mov rdi, [rsp+24]
+    test rdi, rdi
+    jz .exit
+    mov r12, [rsp+16]
+    mov r12, [r12]
+    jmp .inorder_loop
+
+.check_next:
+    ;; stack.push(current)
+    mov rdi, [rsp]
+    mov rdi, [rdi+BST.arena]
+    mov rsi, 8
+    call arena_push
+    mov [rax], r12
+    mov [rsp+16], rax
+    inc qword [rsp+24]
+
+    mov rdi, [r12+Node.left]
+    test rdi, rdi
+    jz .inorder_loop
+    mov r12, rdi
+    jmp .inorder_loop
+
+.exit:
+    xor rax, rax ;; don't return anything, clean up register anyways
+    xor rdx, rdx
+    mov rsp, rbp
+    pop rbp
+    ret
+
 bst_remove:
 
 ;; u64 bst_height(BST *)

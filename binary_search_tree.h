@@ -30,6 +30,8 @@ struct Entries {
     Entry** entries;
 };
 
+typedef void (*Entry_Callback)(Entry *);
+
 extern BST *bst_make(Arena *);
 extern void bst_clear(BST *);
 extern Entry *bst_insert(BST *, U64 key, void *value);
@@ -37,3 +39,4 @@ extern Entry *bst_find(BST *, U64 key);
 extern Entries bst_find_all(BST *, Arena *, U64 key);
 extern U64 bst_height(BST *);
 extern U64 bst_size(BST *);
+extern void bst_inorder(BST *, Entry_Callback cb);

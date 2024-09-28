@@ -5,6 +5,11 @@
 #include <string.h>
 #include <stdio.h>
 
+static 
+void print_entry(Entry *entry) {
+    printf("%lu: %s\n", entry->key, (char *) entry->val);
+}
+
 int main(int argc, char **argv) {
     PAGE_SIZE = getpagesize();
     Arena *arena = arena_make(16*KB(4));
@@ -38,6 +43,8 @@ int main(int argc, char **argv) {
         Entry *entry = finds.entries[i];
         printf("%s\n", (char *) entry->val);
     }
+
+    bst_inorder(bst, &print_entry);
 
     bst_clear(bst);
     arena_release(arena);
