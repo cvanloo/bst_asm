@@ -19,9 +19,13 @@ int main(int argc, char **argv) {
     bst_insert(bst, 5, v1);
     bst_insert(bst, 1, v1);
     bst_insert(bst, 7, v1);
+    U64 h = bst_height(bst); // expected: 2
+    U64 s = bst_size(bst);   // expected: 3
     Entry *e4 = bst_insert(bst, 7, v2);
-
     (void) e4;
+
+    h = bst_height(bst); // expected: 3
+    s = bst_size(bst);   // expected: 4
 
     Entry *res1 = bst_find(bst, 8);
     assert(res1 == 0 && "found (but should be not found)");

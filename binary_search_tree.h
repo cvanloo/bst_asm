@@ -35,3 +35,5 @@ extern void bst_clear(BST *);
 extern Entry *bst_insert(BST *, U64 key, void *value);
 extern Entry *bst_find(BST *, U64 key);
 extern Entries bst_find_all(BST *, Arena *, U64 key);
+extern U64 bst_height(BST *);
+extern U64 bst_size(BST *);
