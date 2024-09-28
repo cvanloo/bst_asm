@@ -56,7 +56,7 @@ bst_insert:
     mov [rsp+8], rsi  ;; -- key
     mov [rsp], rdi    ;; -- BST*
 
-    call _find
+    call _find_insertion_point
     ;; rax -- Node**
     mov [rsp+24], rax
 
@@ -80,7 +80,7 @@ bst_insert:
     ret
 
 ;; Node *_find(BST *, u64 key)
-_find:
+_find_insertion_point:
     ;; rdi -- BST*
     ;; rsi -- key
 
@@ -107,7 +107,31 @@ _find:
     ;; rax -- Node** (rax -> x -> NIL)
     ret
 
+;; Entry *bst_find(BST *, u64 key)
 bst_find:
+    ;; rdi -- BST*
+    ;; rsi -- key
+    mov r12, [rdi+BST.root]
+.find_loop:
+    test r12, r12
+    jz .exit_nil
+    mov r13, [r12+Node.key]
+    cmp rsi, r13
+    jl .less
+    jg .greater
+    ;; =
+    mov rax, r12 ;; found Entry*
+    ret
+.less:
+    mov r12, [r12+Node.left]
+    jmp .find_loop
+.greater:
+    mov r12, [r12+Node.right]
+    jmp .find_loop
+.exit_nil:
+    xor rax, rax ;; not found, NIL
+    ret
+
 bst_find_all:
 bst_inorder:
 bst_remove:

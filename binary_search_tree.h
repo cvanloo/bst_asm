@@ -27,3 +27,4 @@ struct BST {
 extern BST *bst_make(Arena *);
 extern void bst_clear(BST *);
 extern Entry *bst_insert(BST *, U64 key, void *value);
+extern Entry *bst_find(BST *, U64 key);
