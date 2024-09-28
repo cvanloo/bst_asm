@@ -52,7 +52,8 @@ bst_insert:
     ;; rdx -- value*
     push rbp
     mov rbp, rsp
-    sub rsp, 32
+    sub rsp, 40
+    ;;  [rsp+32]         -- u64 depth of insertion point
     ;;  [rsp+24]         -- Node** (where to insert new node)
     mov [rsp+16], rdx ;; -- value*
     mov [rsp+8], rsi  ;; -- key
@@ -60,7 +61,9 @@ bst_insert:
 
     call _find_insertion_point
     ;; rax -- Node**
+    ;; rdx -- u64 depth of node in rax
     mov [rsp+24], rax
+    mov [rsp+32], rdx
 
     mov rdi, [rsp]
     mov rdi, [rdi+BST.arena]
@@ -77,6 +80,12 @@ bst_insert:
 
     mov rdi, [rsp]
     inc qword [rdi+BST.size]
+    mov rsi, [rdi+BST.height]
+    mov rdx, [rsp+32]
+    cmp rdx, rsi
+    jl .exit
+    inc qword [rdi+BST.height]
+    ;; current height > insertion point height should never happen!
 
 .exit:
     ;; rax -- new Entry*
@@ -91,12 +100,14 @@ _find_insertion_point:
 
     ;; rax -- current Node**
     ;; r8 -- current key
+    xor rdx, rdx ;; keep track of depth
     lea rax, [rdi+BST.root]
 .find_loop:
     mov r9, [rax] ;; Node*
     test r9, r9
     jz .exit
 
+    inc rdx
     mov r8, [r9+Node.key]
     cmp rsi, r8
     jl .less
@@ -110,6 +121,7 @@ _find_insertion_point:
 
 .exit:
     ;; rax -- Node** (rax -> x -> NIL)
+    ;; rdx -- u64 depth of insertion point
     ret
 
 ;; Entry *bst_find(BST *, u64 key)
