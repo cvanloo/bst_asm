@@ -41,6 +41,8 @@ bst_make:
 ;; void bst_clear(BST *)
 bst_clear:
     mov qword [rdi+BST.size], 0
+    mov qword [rdi+BST.height], 0
+    mov qword [rdi+BST.root], 0
     ret
 
 ;; Entry *bst_insert(BST *, Entry)
@@ -72,6 +74,9 @@ bst_insert:
 
     mov r8, [rsp+24] ;; Node**
     mov [r8], rax
+
+    mov rdi, [rsp]
+    inc qword [rdi+BST.size]
 
 .exit:
     ;; rax -- new Entry*
