@@ -5,7 +5,7 @@ BITS 64
 ;; pass INTEGER: rdi, rsi, rdx, rcx, r8, r9, stack...
 ;; return INTEGER: rax, rdx
 
-extern arena_push, arena_pop, arena_pop_to, arena_clear
+extern arena_push, arena_pos, arena_pop, arena_pop_to, arena_clear
 global bst_make, bst_clear, bst_insert, bst_find, bst_find_all, bst_inorder, bst_remove, bst_height, bst_size
 
 struc BST
@@ -25,6 +25,14 @@ struc Node
     .val:   resq 1 ;; void*
     .left:  resq 1 ;; Node*
     .right: resq 1 ;; Node*
+endstruc
+
+;; This struct will be returned from functions via registers,
+;; rax = .size, rdx = .entries
+struc Entries
+    .size: resq 1    ;; u64
+    .entries: resq 1 ;; Entry** (note that a Entry*[] wouldn't do it, since FAMs are part of the structs memory layout)
+                     ;;         (that would cause the struct to be classified MEMORY instead of our desired INTEGER)
 endstruc
 
 ;; BST *bst_make(Arena *)
@@ -149,7 +157,60 @@ bst_find:
     xor rax, rax ;; not found, NIL
     ret
 
+;; Entries bst_find_all(BST *, Arena *, u64 key)
 bst_find_all:
+    ;; rdi -- BST*
+    ;; rsi -- Arena*
+    ;; rdx -- key
+    push rbp
+    mov rbp, rsp
+    sub rsp, 40
+    mov qword [rsp+32], 0   ;; -- Entries size
+    ;;  [rsp+24]         -- save arena start pos (the position where Entries starts)
+    mov [rsp+16], rdx ;; -- key
+    mov [rsp+8], rsi  ;; -- Arena*
+    mov [rsp], rdi    ;; -- BST*
+
+    ;; @fixme: probably not a good idea to access arena internals like this
+    ;;         maybe we should add a method to the arena's interface for this?
+    mov rdi, [rsp+8]
+    mov r12, [rdi+8]   ;; arena->pos
+    lea rax, [rdi+32]  ;; arena->data
+    lea rax, [rax+r12] ;; arena->data[arena->pos]
+    mov [rsp+24], rax
+
+    mov rdi, [rsp]
+    mov r12, [rdi+BST.root]
+.find_loop:
+    test r12, r12
+    jz .exit
+    mov r13, [r12+Node.key]
+    cmp [rsp+16], r13
+    jl .less
+    jg .greater
+    ;; =
+    mov rdi, [rsp+8]
+    mov rsi, 8 ;; pointer size (Entry *)
+    call arena_push
+    mov [rax], r12
+    inc qword [rsp+32]
+    ;; multimap: continue with greater, 'cause multiple of the same key might be stored there
+.greater:
+    mov r12, [r12+Node.right]
+    jmp .find_loop
+.less:
+    mov r12, [r12+Node.left]
+    jmp .find_loop
+
+.exit:
+    ;; rax -- size
+    ;; rdx -- Entry** (as in array of pointers to entries)
+    mov rax, [rsp+32]
+    mov rdx, [rsp+24]
+    mov rsp, rbp
+    pop rbp
+    ret
+
 bst_inorder:
 bst_remove:
 

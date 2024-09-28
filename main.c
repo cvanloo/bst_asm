@@ -28,6 +28,9 @@ int main(int argc, char **argv) {
     Entry *res2 = bst_find(bst, 7);
     assert(res2 && "not found (but should be found)");
 
+    Entries finds = bst_find_all(bst, arena, 7);
+    (void) finds;
+
     bst_clear(bst);
     arena_release(arena);
 }
