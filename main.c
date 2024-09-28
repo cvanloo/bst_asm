@@ -3,6 +3,7 @@
 #include "binary_search_tree.h"
 
 #include <string.h>
+#include <stdio.h>
 
 int main(int argc, char **argv) {
     PAGE_SIZE = getpagesize();
@@ -29,7 +30,10 @@ int main(int argc, char **argv) {
     assert(res2 && "not found (but should be found)");
 
     Entries finds = bst_find_all(bst, arena, 7);
-    (void) finds;
+    for (U64 i = 0; i < finds.size; ++i) {
+        Entry *entry = finds.entries[i];
+        printf("%s\n", (char *) entry->val);
+    }
 
     bst_clear(bst);
     arena_release(arena);
