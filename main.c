@@ -54,6 +54,7 @@ U8 test_remove3(Arena *);
 U8 test_remove4(Arena *);
 U8 test_remove5(Arena *);
 U8 test_find_all(Arena *);
+U8 test_remove_height(Arena *);
 
 typedef U8 (*Test_Function)(Arena *);
 
@@ -65,6 +66,7 @@ static Test_Function TEST_FUNCTIONS[] = {
     test_remove4,
     test_remove5,
     test_find_all,
+    test_remove_height,
     0,
 };
 
@@ -126,7 +128,7 @@ int main(int argc, char **argv) {
     for (Test_Function test = TEST_FUNCTIONS[i]; test != 0; test = TEST_FUNCTIONS[++i]) {
         arena_clear(arena);
         if (!test(arena)) {
-            printf("TEST %lu FAILED", i);
+            printf("TEST %lu FAILED\n", i);
         }
     }
 
@@ -170,25 +172,25 @@ test_remove(Arena *arena) {
     Entry *r1 = bst_remove(bst, 7);
     TEST_ASSERT((float*)(r1->val) == &first_seven);
     TEST_ASSERT(bst_size(bst) == 8);
-    //TEST_ASSERT(bst_height(bst) == 4);
+    TEST_ASSERT(bst_height(bst) == 4);
     Entry *f1 = bst_find(bst, 7);
     TEST_ASSERT((float*)(f1->val) == &second_seven);
     bst_remove(bst, 6);
     TEST_ASSERT(bst_size(bst) == 7);
-    //TEST_ASSERT(bst_height(bst) == 3);
+    TEST_ASSERT(bst_height(bst) == 3);
     Node *f2 = (Node *) bst_find(bst, 9);
     TEST_ASSERT(f2->left == (Node *) e1);
     bst_remove(bst, 12);
     TEST_ASSERT(bst_size(bst) == 6);
-    //TEST_ASSERT(bst_height(bst) == 3);
+    TEST_ASSERT(bst_height(bst) == 3);
     bst_remove(bst, 9);
     TEST_ASSERT(bst_size(bst) == 5);
-    //TEST_ASSERT(bst_height(bst) == 3);
+    TEST_ASSERT(bst_height(bst) == 3);
     TEST_ASSERT(bst->root->right == (Node *) e1);
     bst_remove(bst, 5);
     TEST_ASSERT(bst->root == (Node *) e1);
     TEST_ASSERT(bst_size(bst) == 4);
-    //TEST_ASSERT(bst_height(bst) == 3);
+    TEST_ASSERT(bst_height(bst) == 3);
     return 1;
 }
 
@@ -211,7 +213,7 @@ test_remove2(Arena *arena) {
     Entry *r1 = bst_remove(bst, 5);
     TEST_ASSERT(r1 == root);
     TEST_ASSERT(bst_size(bst) == 8);
-    //TEST_ASSERT(bst_height(bst) == 4);
+    TEST_ASSERT(bst_height(bst) == 4);
     return 1;
 }
 
@@ -314,7 +316,7 @@ test_remove5(Arena *arena) {
     TEST_ASSERT(bst_height(bst) == 5);
     bst_remove(bst, 5);
     TEST_ASSERT(bst_size(bst) == 11);
-    //TEST_ASSERT(bst_height(bst) == 4);
+    TEST_ASSERT(bst_height(bst) == 4);
 
     ArrayEntries *entries = malloc(sizeof(ArrayEntries));
     collect_to_entries_result = &entries;
@@ -369,5 +371,24 @@ test_find_all(Arena *arena) {
     Entries finds7 = bst_find_all(bst, arena, 7);
     TEST_ASSERT(finds7.size == 2);
 
+    return 1;
+}
+
+U8
+test_remove_height(Arena *arena) {
+    BST *bst = bst_make(arena);
+    bst_insert(bst, 1, 0);
+    bst_insert(bst, 2, 0);
+    bst_insert(bst, 6, 0);
+    bst_insert(bst, 4, 0);
+    bst_insert(bst, 5, 0);
+    bst_insert(bst, 7, 0);
+    bst_insert(bst, 8, 0);
+    bst_insert(bst, 9, 0);
+    TEST_ASSERT(bst_size(bst) == 8);
+    TEST_ASSERT(bst_height(bst) == 6);
+    bst_remove(bst, 7);
+    TEST_ASSERT(bst_size(bst) == 7);
+    TEST_ASSERT(bst_height(bst) == 5);
     return 1;
 }

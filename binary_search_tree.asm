@@ -303,12 +303,22 @@ bst_remove:
     cmp rsi, r13
     jl .less
     jg .greater
+
     ;; =
     dec qword [rdi+BST.size]
-    ;; @fixme: adjust height as necessary
+
+    push rdi
     mov rdi, r9
     call _shift_node
     mov [r12], rax
+
+    ;; adjust height as necessary
+    mov rdi, [rsp]
+    mov rsi, [rdi+BST.root]
+    call _bst_calc_height
+    pop rdi
+    mov [rdi+BST.height], rax
+
     mov rax, r9
     ret
 .less:
@@ -318,8 +328,6 @@ bst_remove:
     lea r12, [r9+Node.right]
     jmp .find_loop
 
-    ;; rax -- pointer to either the root pointer, some left or some right child pointer
-    ret
 .exit_nil:
     xor rax, rax
     ret
@@ -375,6 +383,82 @@ _shift_node:
 .both_zero:
     xor rax, rax ;; return NIL
     pop r12
+    ret
+
+struc Node_Height
+    .node: resq 1   ;; Node*
+    .height: resq 1 ;; u64 height
+endstruc
+
+;; u64 _bst_calc_height(BST *, Node* n)
+_bst_calc_height:
+    ;; rdi -- BST*
+    ;; rsi -- Node*
+    push rbp
+    mov rbp, rsp
+    sub rsp, 40
+    mov r8, [rdi+BST.arena]
+    mov qword [rsp+32], 0 ;; -- max height
+    mov qword [rsp+24], 0 ;; -- number of elements on stack
+    ;;  [rsp+16]    ;; -- top of stack
+    mov [rsp+8], r8 ;; -- Arena*
+    mov [rsp], rdi  ;; -- BST*
+
+    xor r13, r13 ;; current path height
+    mov r12, rsi ;; current node (start with n)
+.calc_loop:
+    mov rdi, [rsp+24]
+    test rdi, rdi
+    jz .check_next
+    mov rdi, [rsp+16]
+    mov rdi, [rdi]
+    cmp rdi, r12
+    jne .check_next
+
+    mov rdi, [rsp+8]
+    mov rsi, Node_Height_size
+    call arena_pop
+    dec qword [rsp+24]
+    sub qword [rsp+16], Node_Height_size
+
+    mov rdi, [r12+Node.right]
+    test rdi, rdi
+    jz .next_in_stack
+    mov r12, rdi
+    jmp .calc_loop
+
+.next_in_stack:
+    mov rdi, [rsp+24]
+    test rdi, rdi
+    jz .exit
+    mov r8, [rsp+16]
+    mov r12, [r8+Node_Height.node]
+    mov r13, [r8+Node_Height.height]
+    jmp .calc_loop
+
+.check_next:
+    inc r13
+    mov rdi, [rsp+8]
+    mov rsi, Node_Height_size
+    call arena_push
+    mov [rax+Node_Height.node], r12
+    mov [rax+Node_Height.height], r13
+    mov [rsp+16], rax
+    inc qword [rsp+24]
+    cmp r13, [rsp+32]
+    jle .no_max
+    mov [rsp+32], r13
+.no_max:
+    mov rdi, [r12+Node.left]
+    test rdi, rdi
+    jz .calc_loop
+    mov r12, rdi
+    jmp .calc_loop
+
+.exit:
+    mov rax, [rsp+32] ;; rax -- max height
+    mov rsp, rbp
+    pop rbp
     ret
 
 ;; u64 bst_height(BST *)
