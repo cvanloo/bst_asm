@@ -4,10 +4,46 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 static 
 void print_entry(Entry *entry) {
     printf("%lu: %s\n", entry->key, (char *) entry->val);
+}
+
+typedef struct ArrayEntries ArrayEntries;
+struct ArrayEntries {
+    U64 size;
+    U64 cap;
+    Entry data[];
+};
+
+static
+Entry *array_entries_push(ArrayEntries **entries) {
+    ArrayEntries *this = *entries;
+    if (this->size >= this->cap) {
+        if (this->cap == 0) {
+            this->cap = 16;
+        } else {
+            this->cap = this->cap << 1;
+        }
+        this = realloc(this, sizeof(ArrayEntries) + sizeof(Entry) * this->cap);
+        assert(this);
+    }
+    Entry *new = &this->data[this->size];
+    this->size = this->size + 1;
+    *entries = this;
+    return new;
+}
+
+static ArrayEntries** collect_to_entries_result;
+static
+void collect_to_entries(Entry *entry) {
+    if (collect_to_entries_result) {
+        Entry* new = array_entries_push(collect_to_entries_result);
+        new->key = entry->key;
+        new->val = entry->val;
+    }
 }
 
 int main(int argc, char **argv) {
@@ -45,6 +81,14 @@ int main(int argc, char **argv) {
     }
 
     bst_inorder(bst, &print_entry);
+
+    ArrayEntries *entries = malloc(sizeof(ArrayEntries));
+    collect_to_entries_result = &entries;
+    bst_inorder(bst, &collect_to_entries);
+    for (U64 i = 0; i < entries->size; ++i) {
+        Entry entry = entries->data[i];
+        printf("-> %lu: %s\n", entry.key, (char *) entry.val);
+    }
 
     Entry *not_found = bst_remove(bst, 8);
     assert(not_found == 0 && "found (but should be not found)");
