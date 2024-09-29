@@ -6,8 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static 
-void print_entry(Entry *entry) {
+static void
+print_entry(Entry *entry) {
     printf("%lu: %s\n", entry->key, (char *) entry->val);
 }
 
@@ -18,8 +18,8 @@ struct ArrayEntries {
     Entry data[];
 };
 
-static
-Entry *array_entries_push(ArrayEntries **entries) {
+static Entry *
+array_entries_push(ArrayEntries **entries) {
     ArrayEntries *this = *entries;
     if (this->size >= this->cap) {
         if (this->cap == 0) {
@@ -37,8 +37,8 @@ Entry *array_entries_push(ArrayEntries **entries) {
 }
 
 static ArrayEntries** collect_to_entries_result;
-static
-void collect_to_entries(Entry *entry) {
+static void
+collect_to_entries(Entry *entry) {
     if (collect_to_entries_result) {
         Entry* new = array_entries_push(collect_to_entries_result);
         new->key = entry->key;
