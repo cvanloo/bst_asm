@@ -53,6 +53,7 @@ U8 test_remove2(Arena *);
 U8 test_remove3(Arena *);
 U8 test_remove4(Arena *);
 U8 test_remove5(Arena *);
+U8 test_find_all(Arena *);
 
 typedef U8 (*Test_Function)(Arena *);
 
@@ -63,6 +64,7 @@ static Test_Function TEST_FUNCTIONS[] = {
     test_remove3,
     test_remove4,
     test_remove5,
+    test_find_all,
     0,
 };
 
@@ -322,5 +324,50 @@ test_remove5(Arena *arena) {
     for (U64 i = 0; i < entries->size; ++i) {
         TEST_ASSERT(entries->data[i].key == expected[i]);
     }
+    return 1;
+}
+
+U8
+test_find_all(Arena *arena) {
+    BST *bst = bst_make(arena);
+    float two_one = 2.1;
+    float two_two = 2.2;
+    float two_three = 2.3;
+    float seven_one = 7.1;
+    float seven_two = 7.2;
+    bst_insert(bst, 5, 0);
+    bst_insert(bst, 2, &two_one);
+    bst_insert(bst, 2, &two_two);
+    bst_insert(bst, 3, 0);
+    bst_insert(bst, 2, &two_three);
+    bst_insert(bst, 7, &seven_one);
+    bst_insert(bst, 8, 0);
+    bst_insert(bst, 7, &seven_two);
+    TEST_ASSERT(bst_size(bst) == 8);
+    TEST_ASSERT(bst_height(bst) == 5);
+
+    ArrayEntries *entries = malloc(sizeof(ArrayEntries));
+    collect_to_entries_result = &entries;
+    bst_inorder(bst, &collect_to_entries);
+    U64 expected[8] = {2, 2, 2, 3, 5, 7, 7, 8};
+    TEST_ASSERT(entries->size == 8);
+    for (U64 i = 0; i < entries->size; ++i) {
+        TEST_ASSERT(entries->data[i].key == expected[i]);
+    }
+
+    Entry *f1 = bst_find(bst, 2);
+    TEST_ASSERT(f1 != 0);
+    TEST_ASSERT((float *) f1->val == &two_one);
+
+    Entry *f2 = bst_find(bst, 7);
+    TEST_ASSERT(f2 != 0);
+    TEST_ASSERT((float *) f2->val == &seven_one);
+
+    Entries finds2 = bst_find_all(bst, arena, 2);
+    TEST_ASSERT(finds2.size == 3);
+
+    Entries finds7 = bst_find_all(bst, arena, 7);
+    TEST_ASSERT(finds7.size == 2);
+
     return 1;
 }
