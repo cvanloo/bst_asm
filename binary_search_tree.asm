@@ -304,6 +304,8 @@ bst_remove:
     jl .less
     jg .greater
     ;; =
+    dec qword [rdi+BST.size]
+    ;; @fixme: adjust height as necessary
     mov rdi, r9
     call _shift_node
     mov [r12], rax
