@@ -356,7 +356,7 @@ _shift_node:
     mov [r14+Node.left], r8
     mov [r13+Node.right], r15
 .candidate_is_right_child:
-    mov r15, [r15+Node.left]
+    mov r15, [rdi+Node.left]
     mov [r13+Node.left], r15
     mov rax, r13 ;; return candidate
     pop r12
