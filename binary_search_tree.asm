@@ -306,19 +306,12 @@ bst_remove:
 
     ;; =
     dec qword [rdi+BST.size]
+    ;; mark height as 'outdated'
+    mov qword [rdi+BST.height], 0
 
-    push rdi
     mov rdi, r9
     call _shift_node
     mov [r12], rax
-
-    ;; adjust height as necessary
-    mov rdi, [rsp]
-    mov rsi, [rdi+BST.root]
-    call _bst_calc_height
-    pop rdi
-    mov [rdi+BST.height], rax
-
     mov rax, r9
     ret
 .less:
@@ -465,6 +458,12 @@ _bst_calc_height:
 bst_height:
     ;; rdi -- BST*
     mov rax, [rdi+BST.height]
+    test rax, rax
+    jnz .exit
+    ;; rdi -- BST*
+    mov rsi, [rdi+BST.root]
+    call _bst_calc_height
+.exit:
     ret
 
 ;; u64 bst_size(BST *)
