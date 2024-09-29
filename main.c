@@ -46,6 +46,26 @@ collect_to_entries(Entry *entry) {
     }
 }
 
+#define TEST_ASSERT(exp) if (!(exp)) return 0;
+U8 test_insert(Arena *);
+U8 test_remove(Arena *);
+U8 test_remove2(Arena *);
+U8 test_remove3(Arena *);
+U8 test_remove4(Arena *);
+U8 test_remove5(Arena *);
+
+typedef U8 (*Test_Function)(Arena *);
+
+static Test_Function TEST_FUNCTIONS[] = {
+    test_insert,
+    test_remove,
+    test_remove2,
+    test_remove3,
+    test_remove4,
+    test_remove5,
+    0,
+};
+
 int main(int argc, char **argv) {
     PAGE_SIZE = getpagesize();
     Arena *arena = arena_make(16*KB(4));
@@ -99,5 +119,208 @@ int main(int argc, char **argv) {
     assert(found2 && "not found (2) (but should be found)");
 
     bst_clear(bst);
+
+    U64 i = 0;
+    for (Test_Function test = TEST_FUNCTIONS[i]; test != 0; test = TEST_FUNCTIONS[++i]) {
+        arena_clear(arena);
+        if (!test(arena)) {
+            printf("TEST %lu FAILED", i);
+        }
+    }
+
     arena_release(arena);
+}
+
+U8
+test_insert(Arena *arena) {
+    BST *bst = bst_make(arena);
+    bst_insert(bst, 2, 0);
+    TEST_ASSERT(bst_size(bst) == 1);
+    TEST_ASSERT(bst_height(bst) == 1);
+    bst_insert(bst, 4, 0);
+    TEST_ASSERT(bst_size(bst) == 2);
+    TEST_ASSERT(bst_height(bst) == 2);
+    bst_insert(bst, 1, 0);
+    TEST_ASSERT(bst_size(bst) == 3);
+    TEST_ASSERT(bst_height(bst) == 2);
+    bst_insert(bst, 3, 0);
+    TEST_ASSERT(bst_size(bst) == 4);
+    TEST_ASSERT(bst_height(bst) == 3);
+    return 1;
+}
+
+U8
+test_remove(Arena *arena) {
+    BST *bst = bst_make(arena);
+    bst_insert(bst, 5, 0);
+    bst_insert(bst, 9, 0);
+    bst_insert(bst, 6, 0);
+    bst_insert(bst, 2, 0);
+    bst_insert(bst, 1, 0);
+    bst_insert(bst, 3, 0);
+    float first_seven = 7.1;
+    float second_seven = 7.2;
+    bst_insert(bst, 7, &first_seven);
+    Entry *e1 = bst_insert(bst, 7, &second_seven);
+    bst_insert(bst, 12, 0);
+    TEST_ASSERT(bst_size(bst) == 9);
+    TEST_ASSERT(bst_height(bst) == 5);
+    Entry *r1 = bst_remove(bst, 7);
+    TEST_ASSERT((float*)(r1->val) == &first_seven);
+    TEST_ASSERT(bst_size(bst) == 8);
+    //TEST_ASSERT(bst_height(bst) == 4);
+    Entry *f1 = bst_find(bst, 7);
+    TEST_ASSERT((float*)(f1->val) == &second_seven);
+    bst_remove(bst, 6);
+    TEST_ASSERT(bst_size(bst) == 7);
+    //TEST_ASSERT(bst_height(bst) == 3);
+    Node *f2 = (Node *) bst_find(bst, 9);
+    TEST_ASSERT(f2->left == (Node *) e1);
+    bst_remove(bst, 12);
+    TEST_ASSERT(bst_size(bst) == 6);
+    //TEST_ASSERT(bst_height(bst) == 3);
+    bst_remove(bst, 9);
+    TEST_ASSERT(bst_size(bst) == 5);
+    //TEST_ASSERT(bst_height(bst) == 3);
+    TEST_ASSERT(bst->root->right == (Node *) e1);
+    bst_remove(bst, 5);
+    TEST_ASSERT(bst->root == (Node *) e1);
+    TEST_ASSERT(bst_size(bst) == 4);
+    //TEST_ASSERT(bst_height(bst) == 3);
+    return 1;
+}
+
+U8
+test_remove2(Arena *arena) {
+    BST *bst = bst_make(arena);
+    Entry *root = bst_insert(bst, 5, 0);
+    bst_insert(bst, 9, 0);
+    bst_insert(bst, 6, 0);
+    bst_insert(bst, 2, 0);
+    bst_insert(bst, 1, 0);
+    bst_insert(bst, 3, 0);
+    float first_seven = 7.1;
+    float second_seven = 7.2;
+    bst_insert(bst, 7, &first_seven);
+    Entry *e1 = bst_insert(bst, 7, &second_seven);
+    bst_insert(bst, 12, 0);
+    TEST_ASSERT(bst_size(bst) == 9);
+    TEST_ASSERT(bst_height(bst) == 5);
+    Entry *r1 = bst_remove(bst, 5);
+    TEST_ASSERT(r1 == root);
+    TEST_ASSERT(bst_size(bst) == 8);
+    //TEST_ASSERT(bst_height(bst) == 4);
+    return 1;
+}
+
+U8
+test_remove3(Arena *arena) {
+    BST *bst = bst_make(arena);
+    bst_insert(bst, 5, 0);
+    bst_insert(bst, 2, 0);
+    bst_insert(bst, 1, 0);
+    bst_insert(bst, 3, 0);
+    bst_insert(bst, 12, 0);
+    bst_insert(bst, 10, 0);
+    bst_insert(bst, 37, 0);
+    bst_insert(bst, 40, 0);
+    bst_insert(bst, 16, 0);
+    bst_insert(bst, 11, 0);
+    bst_insert(bst, 8, 0);
+    bst_insert(bst, 9, 0);
+    bst_insert(bst, 7, 0);
+    TEST_ASSERT(bst_size(bst) == 13);
+    TEST_ASSERT(bst_height(bst) == 5);
+
+    ArrayEntries *entries = malloc(sizeof(ArrayEntries));
+    collect_to_entries_result = &entries;
+    {
+        bst_inorder(bst, &collect_to_entries);
+        U64 expected[13] = {1, 2, 3, 5, 7, 8, 9, 10, 11, 12, 16, 37, 40};
+        TEST_ASSERT(entries->size == 13);
+        for (U64 i = 0; i < entries->size; ++i) {
+            TEST_ASSERT(entries->data[i].key == expected[i]);
+        }
+    }
+
+    bst_remove(bst, 5);
+    TEST_ASSERT(bst_size(bst) == 12);
+    TEST_ASSERT(bst_height(bst) == 5);
+
+    entries->size = 0;
+    {
+        bst_inorder(bst, &collect_to_entries);
+        U64 expected[12] = {1, 2, 3, 7, 8, 9, 10, 11, 12, 16, 37, 40};
+        TEST_ASSERT(entries->size == 12);
+        for (U64 i = 0; i < entries->size; ++i) {
+            TEST_ASSERT(entries->data[i].key == expected[i]);
+        }
+    }
+
+    return 1;
+}
+
+U8
+test_remove4(Arena *arena) {
+    BST *bst = bst_make(arena);
+    bst_insert(bst, 5, 0);
+    bst_insert(bst, 2, 0);
+    bst_insert(bst, 1, 0);
+    bst_insert(bst, 3, 0);
+    bst_insert(bst, 12, 0);
+    bst_insert(bst, 10, 0);
+    bst_insert(bst, 37, 0);
+    bst_insert(bst, 40, 0);
+    bst_insert(bst, 16, 0);
+    bst_insert(bst, 11, 0);
+    bst_insert(bst, 8, 0);
+    bst_insert(bst, 9, 0);
+    bst_insert(bst, 7, 0);
+    TEST_ASSERT(bst_size(bst) == 13);
+    TEST_ASSERT(bst_height(bst) == 5);
+    bst_remove(bst, 12);
+    TEST_ASSERT(bst_size(bst) == 12);
+    TEST_ASSERT(bst_height(bst) == 5);
+
+    ArrayEntries *entries = malloc(sizeof(ArrayEntries));
+    collect_to_entries_result = &entries;
+    bst_inorder(bst, &collect_to_entries);
+    U64 expected[12] = {1, 2, 3, 5, 7, 8, 9, 10, 11, 16, 37, 40};
+    TEST_ASSERT(entries->size == 12);
+    for (U64 i = 0; i < entries->size; ++i) {
+        TEST_ASSERT(entries->data[i].key == expected[i]);
+    }
+    return 1;
+}
+
+U8
+test_remove5(Arena *arena) {
+    BST *bst = bst_make(arena);
+    bst_insert(bst, 5, 0);
+    bst_insert(bst, 2, 0);
+    bst_insert(bst, 1, 0);
+    bst_insert(bst, 3, 0);
+    bst_insert(bst, 12, 0);
+    bst_insert(bst, 10, 0);
+    bst_insert(bst, 37, 0);
+    bst_insert(bst, 40, 0);
+    bst_insert(bst, 16, 0);
+    bst_insert(bst, 11, 0);
+    bst_insert(bst, 8, 0);
+    bst_insert(bst, 9, 0);
+    TEST_ASSERT(bst_size(bst) == 12);
+    TEST_ASSERT(bst_height(bst) == 5);
+    bst_remove(bst, 5);
+    TEST_ASSERT(bst_size(bst) == 11);
+    //TEST_ASSERT(bst_height(bst) == 4);
+
+    ArrayEntries *entries = malloc(sizeof(ArrayEntries));
+    collect_to_entries_result = &entries;
+    bst_inorder(bst, &collect_to_entries);
+    U64 expected[11] = {1, 2, 3, 8, 9, 10, 11, 12, 16, 37, 40};
+    TEST_ASSERT(entries->size == 11);
+    for (U64 i = 0; i < entries->size; ++i) {
+        TEST_ASSERT(entries->data[i].key == expected[i]);
+    }
+    return 1;
 }
