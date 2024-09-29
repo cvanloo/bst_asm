@@ -46,6 +46,14 @@ int main(int argc, char **argv) {
 
     bst_inorder(bst, &print_entry);
 
+    Entry *not_found = bst_remove(bst, 8);
+    assert(not_found == 0 && "found (but should be not found)");
+    Entry *found = bst_remove(bst, 1);
+    assert(found && "not found (but should be found)");
+    //Entry *found2 = bst_remove(bst, 5);
+    Entry *found2 = bst_remove(bst, 7);
+    assert(found2 && "not found (2) (but should be found)");
+
     bst_clear(bst);
     arena_release(arena);
 }

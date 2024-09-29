@@ -290,7 +290,90 @@ bst_inorder:
     pop rbp
     ret
 
+;; Entry *bst_remove(BST *, u64 key)
 bst_remove:
+    ;; rdi -- BST*
+    ;; rsi -- key
+    lea r12, [rdi+BST.root]
+.find_loop:
+    mov r9, [r12]
+    test r9, r9
+    jz .exit_nil
+    mov r13, [r9+Node.key]
+    cmp rsi, r13
+    jl .less
+    jg .greater
+    ;; =
+    mov rdi, r9
+    call _shift_node
+    mov [r12], rax
+    mov rax, r9
+    ret
+.less:
+    lea r12, [r9+Node.left]
+    jmp .find_loop
+.greater:
+    lea r12, [r9+Node.right]
+    jmp .find_loop
+
+    ;; rax -- pointer to either the root pointer, some left or some right child pointer
+    ret
+.exit_nil:
+    xor rax, rax
+    ret
+
+;; Node *<replacement_node> _shift_node(Node *current_node)
+_shift_node:
+    ;; rdi -- Node*
+    push r12
+    mov r12, [rdi+Node.left]
+    mov r13, [rdi+Node.right]
+    test r12, r12
+    jnz .left_non_zero
+    test r13, r13
+    jz .both_zero
+    jmp .left_zero
+.left_non_zero:
+    test r13, r13
+    jz .right_zero
+    ;; both non-zero
+    ;; r13 is replacement candidate
+    ;; r14 is candidate parent
+    xor r14, r14
+.search_candidate:
+    mov r12, [r13+Node.left]
+    test r12, r12
+    jz .candidate_found
+    mov r14, r13
+    mov r13, r12
+    jmp .search_candidate
+.candidate_found:
+    mov r15, [rdi+Node.right]
+    cmp r15, r13
+    je .candidate_is_right_child
+    ;; switch candidate with right child of current_node
+    mov r8, [r13+Node.right]
+    mov [r14+Node.left], r8
+    mov [r13+Node.right], r15
+.candidate_is_right_child:
+    mov r15, [r15+Node.left]
+    mov [r13+Node.left], r15
+    mov rax, r13 ;; return candidate
+    pop r12
+    ret
+
+.left_zero:
+    mov rax, r13 ;; return right child
+    pop r12
+    ret
+.right_zero:
+    mov rax, r12 ;; return left child
+    pop r12
+    ret
+.both_zero:
+    xor rax, rax ;; return NIL
+    pop r12
+    ret
 
 ;; u64 bst_height(BST *)
 bst_height:
