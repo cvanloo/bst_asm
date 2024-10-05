@@ -10,6 +10,8 @@ struct Node {
     void *val;
     Node *left;
     Node *right;
+    Node *parent;
+    S8 bf;
 };
 
 typedef struct Entry Entry;

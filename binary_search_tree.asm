@@ -80,6 +80,7 @@ bst_insert:
     call _find_insertion_point
     ;; rax -- Node**
     ;; rdx -- u64 depth of node in rax
+    ;; rbx -- Node* parent
     mov [rsp+24], rax
     mov [rsp+32], rdx
 
@@ -92,11 +93,11 @@ bst_insert:
     mov [rax+Node.key], r12
     mov r12, [rsp+16]
     mov [rax+Node.val], r12
+    ;; rax+Node.bf starts out as zero (as do .left and .right)
+    mov [rax+Node.parent], rbx
 
     mov r8, [rsp+24] ;; Node**
     mov [r8], rax
-    mov [rax+Node.parent], r8
-    ;; rax+Node.bf starts out as zero
 
     mov rdi, [rsp]
     inc qword [rdi+BST.size]
@@ -108,7 +109,14 @@ bst_insert:
     ;; current height > insertion point height should never happen!
 
 .exit:
+    ;; retrace and, if necessary, rebalance tree
+    ;; rdi -- BST*
+    push rax
+    mov rsi, rax
+    call _avl_retrace
+
     ;; rax -- new Entry*
+    pop rax
     mov rsp, rbp
     pop rbp
     ret
@@ -119,6 +127,7 @@ _find_insertion_point:
     ;; rsi -- key*
     mov r14, rdi
     mov r15, rsi
+    xor rbx, rbx
 
     ;; rax -- current Node**
     ;; r8 -- current key
@@ -130,6 +139,7 @@ _find_insertion_point:
     jz .exit
 
     inc rdx
+    mov rbx, r9
     mov r8, [r9+Node.key]
 
     mov rax, [r14+BST.key_cmp]
@@ -149,6 +159,7 @@ _find_insertion_point:
 .exit:
     ;; rax -- Node** (rax -> x -> NIL)
     ;; rdx -- u64 depth of insertion point
+    ;; rbx -- Node* parent
     ret
 
 ;; Entry *bst_find(BST *, void *key)
@@ -344,6 +355,13 @@ bst_remove:
     call _shift_node
     mov [r12], rax
     mov rax, r9
+
+    ;; retrace and, if necessary, rebalance tree
+    push rax
+    mov rdi, r14
+    mov rsi, rax
+    call _avl_retrace
+    pop rax
     ret
 .less:
     lea r12, [r9+Node.left]
@@ -539,6 +557,32 @@ _avl_rotate_right:
     mov [r9+Node.left], rsi
     ret
 
+;; void _avl_retrace(BST *, Node *)
+_avl_retrace:
+    ;; rdi -- BST*
+    ;; rsi -- Node*
+.retrace_loop:
+    mov r15, [rsi+Node.parent]
+    test r15, r15
+    jz .exit
+    mov r14, [r15+Node.left]
+    cmp rsi, r14
+    je .coming_from_left
+.coming_from_right:
+    inc byte [r15+Node.bf]
+    mov rsi, r15
+    call _avl_rebalance
+    test rax, rax
+    jz .retrace_loop
+    jmp .exit
+.coming_from_left:
+    dec byte [r15+Node.bf]
+    mov rsi, r15
+    call _avl_rebalance
+    jz .retrace_loop
+.exit:
+    ret
+
 ;; void _avl_rebalance(BST *, Node *)
 _avl_rebalance:
     ;; rdi -- BST*
@@ -548,13 +592,14 @@ _avl_rebalance:
     je .z_is_right
     cmp r15, -2
     je .z_is_left
+    xor rax, rax
     jmp .exit
 .z_is_right:
     mov r14, [rsi+Node.right]
     mov r14, [r14+Node.bf]
     test r14, r14
     jge .right_right
-    jmp .rigth_left
+    jmp .right_left
 .z_is_left:
     mov r14, [rsi+Node.left]
     mov r14, [r14+Node.bf]
@@ -563,15 +608,19 @@ _avl_rebalance:
     jmp .left_right
 .right_right:
     call _avl_rotate_right
+    mov rax, 1
     ret
 .right_left:
     call _avl_rotate_right_left
+    mov rax, 2
     ret
 .left_left:
     call _avl_rotate_left
+    mov rax, 3
     ret
 .left_right:
     call _avl_rotate_left_right
+    mov rax, 4
 .exit:
     ret
 
