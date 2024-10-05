@@ -43,4 +43,4 @@ extern Entries bst_find_all(BST *, Arena *, void *key);
 extern U64 bst_height(BST *);
 extern U64 bst_size(BST *);
 extern void bst_inorder(BST *, Entry_Callback cb);
-extern Entry *bst_remove(BST *, void *key);
+extern Entry *bst_remove(BST *, Entry *entry);

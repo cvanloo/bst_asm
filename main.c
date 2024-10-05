@@ -73,6 +73,7 @@ U8 test_remove4(Arena *);
 U8 test_remove5(Arena *);
 U8 test_find_all(Arena *);
 U8 test_remove_height(Arena *);
+U8 test_remove_a_key_that_wont_be_found_first(Arena *);
 
 typedef U8 (*Test_Function)(Arena *);
 
@@ -85,6 +86,7 @@ static Test_Function TEST_FUNCTIONS[] = {
     test_remove5,
     test_find_all,
     test_remove_height,
+    test_remove_a_key_that_wont_be_found_first,
     0,
 };
 
@@ -100,8 +102,8 @@ int main(int argc, char **argv) {
 
     BST *bst = bst_make(arena, &u64_cmp);
     bst_insert(bst, hoist_u64(arena, 5), v1);
-    bst_insert(bst, hoist_u64(arena, 1), v1);
-    bst_insert(bst, hoist_u64(arena, 7), v1);
+    Entry *entry_one = bst_insert(bst, hoist_u64(arena, 1), v1);
+    Entry *entry_seven = bst_insert(bst, hoist_u64(arena, 7), v1);
     U64 h = bst_height(bst); // expected: 2
     U64 s = bst_size(bst);   // expected: 3
     Entry *e4 = bst_insert(bst, hoist_u64(arena, 7), v2);
@@ -132,12 +134,14 @@ int main(int argc, char **argv) {
         printf("-> %lu: %s\n", (U64) entry.key, (char *) entry.val);
     }
 
-    Entry *not_found = bst_remove(bst, hoist_u64(arena, 8));
+    Entry inexistent = {0};
+    inexistent.key = hoist_u64(arena, 8);
+    Entry *not_found = bst_remove(bst, &inexistent);
     assert(not_found == 0 && "found (but should be not found)");
-    Entry *found = bst_remove(bst, hoist_u64(arena, 1));
+    Entry *found = bst_remove(bst, entry_one);
     assert(found && "not found (but should be found)");
     //Entry *found2 = bst_remove(bst, hoist_u64(arena, 5));
-    Entry *found2 = bst_remove(bst, hoist_u64(arena, 7));
+    Entry *found2 = bst_remove(bst, entry_seven);
     assert(found2 && "not found (2) (but should be found)");
 
     bst_clear(bst);
@@ -174,39 +178,41 @@ test_insert(Arena *arena) {
 U8
 test_remove(Arena *arena) {
     BST *bst = bst_make(arena, &u64_cmp);
-    bst_insert(bst, hoist_u64(arena, 5), 0);
-    bst_insert(bst, hoist_u64(arena, 9), 0);
-    bst_insert(bst, hoist_u64(arena, 6), 0);
+    Entry *e_five = bst_insert(bst, hoist_u64(arena, 5), 0);
+    Entry *e_nine = bst_insert(bst, hoist_u64(arena, 9), 0);
+    Entry *e_six = bst_insert(bst, hoist_u64(arena, 6), 0);
     bst_insert(bst, hoist_u64(arena, 2), 0);
     bst_insert(bst, hoist_u64(arena, 1), 0);
     bst_insert(bst, hoist_u64(arena, 3), 0);
     float first_seven = 7.1;
     float second_seven = 7.2;
-    bst_insert(bst, hoist_u64(arena, 7), &first_seven);
-    Entry *e1 = bst_insert(bst, hoist_u64(arena, 7), &second_seven);
-    bst_insert(bst, hoist_u64(arena, 12), 0);
+    Entry *e_first_seven = bst_insert(bst, hoist_u64(arena, 7), &first_seven);
+    Entry *e_second_seven = bst_insert(bst, hoist_u64(arena, 7), &second_seven);
+    Entry *e_twelve = bst_insert(bst, hoist_u64(arena, 12), 0);
     TEST_ASSERT(bst_size(bst) == 9);
     TEST_ASSERT(bst_height(bst) == 5);
-    Entry *r1 = bst_remove(bst, hoist_u64(arena, 7));
+    Entry *r1 = bst_remove(bst, e_first_seven);
+    TEST_ASSERT(r1 == e_first_seven);
     TEST_ASSERT((float*)(r1->val) == &first_seven);
     TEST_ASSERT(bst_size(bst) == 8);
     TEST_ASSERT(bst_height(bst) == 4);
     Entry *f1 = bst_find(bst, hoist_u64(arena, 7));
+    TEST_ASSERT(f1 == e_second_seven);
     TEST_ASSERT((float*)(f1->val) == &second_seven);
-    bst_remove(bst, hoist_u64(arena, 6));
+    bst_remove(bst, e_six);
     TEST_ASSERT(bst_size(bst) == 7);
     TEST_ASSERT(bst_height(bst) == 3);
     Node *f2 = (Node *) bst_find(bst, hoist_u64(arena, 9));
-    TEST_ASSERT(f2->left == (Node *) e1);
-    bst_remove(bst, hoist_u64(arena, 12));
+    TEST_ASSERT(f2->left == (Node *) e_second_seven);
+    bst_remove(bst, e_twelve);
     TEST_ASSERT(bst_size(bst) == 6);
     TEST_ASSERT(bst_height(bst) == 3);
-    bst_remove(bst, hoist_u64(arena, 9));
+    bst_remove(bst, e_nine);
     TEST_ASSERT(bst_size(bst) == 5);
     TEST_ASSERT(bst_height(bst) == 3);
-    TEST_ASSERT(bst->root->right == (Node *) e1);
-    bst_remove(bst, hoist_u64(arena, 5));
-    TEST_ASSERT(bst->root == (Node *) e1);
+    TEST_ASSERT(bst->root->right == (Node *) e_second_seven);
+    bst_remove(bst, e_five);
+    TEST_ASSERT(bst->root == (Node *) e_second_seven);
     TEST_ASSERT(bst_size(bst) == 4);
     TEST_ASSERT(bst_height(bst) == 3);
     return 1;
@@ -228,7 +234,7 @@ test_remove2(Arena *arena) {
     bst_insert(bst, hoist_u64(arena, 12), 0);
     TEST_ASSERT(bst_size(bst) == 9);
     TEST_ASSERT(bst_height(bst) == 5);
-    Entry *r1 = bst_remove(bst, hoist_u64(arena, 5));
+    Entry *r1 = bst_remove(bst, root);
     TEST_ASSERT(r1 == root);
     TEST_ASSERT(bst_size(bst) == 8);
     TEST_ASSERT(bst_height(bst) == 4);
@@ -238,7 +244,7 @@ test_remove2(Arena *arena) {
 U8
 test_remove3(Arena *arena) {
     BST *bst = bst_make(arena, &u64_cmp);
-    bst_insert(bst, hoist_u64(arena, 5), 0);
+    Entry *e_five = bst_insert(bst, hoist_u64(arena, 5), 0);
     bst_insert(bst, hoist_u64(arena, 2), 0);
     bst_insert(bst, hoist_u64(arena, 1), 0);
     bst_insert(bst, hoist_u64(arena, 3), 0);
@@ -265,7 +271,7 @@ test_remove3(Arena *arena) {
         }
     }
 
-    bst_remove(bst, hoist_u64(arena, 5));
+    bst_remove(bst, e_five);
     TEST_ASSERT(bst_size(bst) == 12);
     TEST_ASSERT(bst_height(bst) == 5);
 
@@ -289,7 +295,7 @@ test_remove4(Arena *arena) {
     bst_insert(bst, hoist_u64(arena, 2), 0);
     bst_insert(bst, hoist_u64(arena, 1), 0);
     bst_insert(bst, hoist_u64(arena, 3), 0);
-    bst_insert(bst, hoist_u64(arena, 12), 0);
+    Entry *e_twelve = bst_insert(bst, hoist_u64(arena, 12), 0);
     bst_insert(bst, hoist_u64(arena, 10), 0);
     bst_insert(bst, hoist_u64(arena, 37), 0);
     bst_insert(bst, hoist_u64(arena, 40), 0);
@@ -300,7 +306,7 @@ test_remove4(Arena *arena) {
     bst_insert(bst, hoist_u64(arena, 7), 0);
     TEST_ASSERT(bst_size(bst) == 13);
     TEST_ASSERT(bst_height(bst) == 5);
-    bst_remove(bst, hoist_u64(arena, 12));
+    bst_remove(bst, e_twelve);
     TEST_ASSERT(bst_size(bst) == 12);
     TEST_ASSERT(bst_height(bst) == 5);
 
@@ -318,7 +324,7 @@ test_remove4(Arena *arena) {
 U8
 test_remove5(Arena *arena) {
     BST *bst = bst_make(arena, &u64_cmp);
-    bst_insert(bst, hoist_u64(arena, 5), 0);
+    Entry *e_five = bst_insert(bst, hoist_u64(arena, 5), 0);
     bst_insert(bst, hoist_u64(arena, 2), 0);
     bst_insert(bst, hoist_u64(arena, 1), 0);
     bst_insert(bst, hoist_u64(arena, 3), 0);
@@ -332,7 +338,7 @@ test_remove5(Arena *arena) {
     bst_insert(bst, hoist_u64(arena, 9), 0);
     TEST_ASSERT(bst_size(bst) == 12);
     TEST_ASSERT(bst_height(bst) == 5);
-    bst_remove(bst, hoist_u64(arena, 5));
+    bst_remove(bst, e_five);
     TEST_ASSERT(bst_size(bst) == 11);
     TEST_ASSERT(bst_height(bst) == 4);
 
@@ -400,13 +406,32 @@ test_remove_height(Arena *arena) {
     bst_insert(bst, hoist_u64(arena, 6), 0);
     bst_insert(bst, hoist_u64(arena, 4), 0);
     bst_insert(bst, hoist_u64(arena, 5), 0);
-    bst_insert(bst, hoist_u64(arena, 7), 0);
+    Entry *e_seven = bst_insert(bst, hoist_u64(arena, 7), 0);
     bst_insert(bst, hoist_u64(arena, 8), 0);
     bst_insert(bst, hoist_u64(arena, 9), 0);
     TEST_ASSERT(bst_size(bst) == 8);
     TEST_ASSERT(bst_height(bst) == 6);
-    bst_remove(bst, hoist_u64(arena, 7));
+    bst_remove(bst, e_seven);
     TEST_ASSERT(bst_size(bst) == 7);
     TEST_ASSERT(bst_height(bst) == 5);
+    return 1;
+}
+
+
+U8
+test_remove_a_key_that_wont_be_found_first(Arena *arena) {
+    BST *bst = bst_make(arena, &u64_cmp);
+    bst_insert(bst, hoist_u64(arena, 3), 0);
+    bst_insert(bst, hoist_u64(arena, 1), 0);
+    bst_insert(bst, hoist_u64(arena, 2), 0);
+    bst_insert(bst, hoist_u64(arena, 2), 0);
+    Entry *e_third_two = bst_insert(bst, hoist_u64(arena, 2), 0);
+    TEST_ASSERT(bst_size(bst) == 5);
+    TEST_ASSERT(bst_height(bst) == 5);
+    Entry *e_removed = bst_remove(bst, e_third_two);
+    TEST_ASSERT(e_removed != 0);
+    TEST_ASSERT(e_removed == e_third_two);
+    TEST_ASSERT(bst_size(bst) == 4);
+    TEST_ASSERT(bst_height(bst) == 4);
     return 1;
 }
