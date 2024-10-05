@@ -622,6 +622,9 @@ _avl_rotate_right:
 
     ;; Z->left = X
     mov [r9+Node.left], rsi
+
+    mov byte [rsi+Node.bf], 0
+    mov byte [r9+Node.bf], 0
     ret
 
 ;; void _avl_rotate_left(BST *, Node *)
@@ -648,6 +651,9 @@ _avl_rotate_left:
 
     ;; Z->right = X
     mov [r9+Node.right], rsi
+
+    mov byte [rsi+Node.bf], 0
+    mov byte [r9+Node.bf], 0
     ret
 
 _avl_rotate_right_left:
@@ -672,6 +678,7 @@ _avl_rotate_left_right:
 
 ;; @todo: test rebalance, rotate implementations are correct (especially the double rotations)
 ;; @todo: update balance factors after rotation
+;; @fixme: I think I confused left and right...
 
 section .bss
 
