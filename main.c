@@ -74,6 +74,7 @@ U8 test_remove5(Arena *);
 U8 test_find_all(Arena *);
 U8 test_remove_height(Arena *);
 U8 test_remove_a_key_that_wont_be_found_first(Arena *);
+U8 test_string_key(Arena *arena);
 
 typedef U8 (*Test_Function)(Arena *);
 
@@ -87,6 +88,7 @@ static Test_Function TEST_FUNCTIONS[] = {
     test_find_all,
     test_remove_height,
     test_remove_a_key_that_wont_be_found_first,
+    test_string_key,
     0,
 };
 
@@ -433,5 +435,35 @@ test_remove_a_key_that_wont_be_found_first(Arena *arena) {
     TEST_ASSERT(e_removed == e_third_two);
     TEST_ASSERT(bst_size(bst) == 4);
     TEST_ASSERT(bst_height(bst) == 4);
+    return 1;
+}
+
+S64
+adapt_strcmp(void *self, void *other) {
+    int res = strcmp((char *)self, (char *)other);
+    return res;
+}
+
+U8
+test_string_key(Arena *arena) {
+    BST *bst = bst_make(arena, &adapt_strcmp);
+    char *key1 = "Key 1";
+    Entry *first_one = bst_insert(bst, key1, 0);
+    char *key2 = "Key 2";
+    bst_insert(bst, key2, 0);
+    char *key3 = "Key 3";
+    bst_insert(bst, key3, 0);
+    Entry *second_one = bst_insert(bst, key1, 0);
+    TEST_ASSERT(bst_size(bst) == 4);
+    TEST_ASSERT(bst_height(bst) == 3);
+    Entry *found1 = bst_find(bst, key1);
+    TEST_ASSERT(found1 == first_one);
+    Entries finds = bst_find_all(bst, arena, key1);
+    TEST_ASSERT(finds.size == 2);
+    TEST_ASSERT(finds.entries[0] == first_one);
+    TEST_ASSERT(finds.entries[1] == second_one);
+    Entry *removed = bst_remove(bst, second_one);
+    TEST_ASSERT(removed != 0);
+    TEST_ASSERT(removed == second_one);
     return 1;
 }
