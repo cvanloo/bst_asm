@@ -26,10 +26,12 @@ struc Entry
 endstruc
 
 struc Node
-    .key:   resq 1 ;; u64
-    .val:   resq 1 ;; void*
-    .left:  resq 1 ;; Node*
-    .right: resq 1 ;; Node*
+    .key:    resq 1 ;; u64
+    .val:    resq 1 ;; void*
+    .left:   resq 1 ;; Node*
+    .right:  resq 1 ;; Node*
+    .parent: resq 1 ;; Node*
+    .bf:     resb 1 ;; s8
 endstruc
 
 ;; This struct will be returned from functions via registers,
@@ -93,6 +95,8 @@ bst_insert:
 
     mov r8, [rsp+24] ;; Node**
     mov [r8], rax
+    mov [rax+Node.parent], r8
+    ;; rax+Node.bf starts out as zero
 
     mov rdi, [rsp]
     inc qword [rdi+BST.size]
@@ -508,6 +512,117 @@ bst_size:
     ;; rdi -- BST*
     mov rax, [rdi+BST.size]
     ret
+
+;; void _avl_rotate_right(BST *, Node *)
+_avl_rotate_right:
+    ;; rdi -- BST*
+    ;; rsi -- Node*
+
+    ;; P             P
+    ;;  \             \
+    ;;   X        =>   Z
+    ;;  / \           / \
+    ;; L*  Z         X  ZR*
+    ;;    / \       / \
+    ;;  ZL  ZR*    L*  ZL
+
+    ;; P->right = X->right (Z)
+    mov r9, [rsi+Node.right]
+    mov r8, [rsi+Node.parent]
+    mov [r8+Node.right], r9
+
+    ;; X->right = Z->left
+    mov r10, [r9+Node.left]
+    mov [rsi+Node.right], r10
+
+    ;; Z->left = X
+    mov [r9+Node.left], rsi
+    ret
+
+;; void _avl_rebalance(BST *, Node *)
+_avl_rebalance:
+    ;; rdi -- BST*
+    ;; rsi -- Node*
+    mov r15, [rsi+Node.bf]
+    cmp r15, 2
+    je .z_is_right
+    cmp r15, -2
+    je .z_is_left
+    jmp .exit
+.z_is_right:
+    mov r14, [rsi+Node.right]
+    mov r14, [r14+Node.bf]
+    test r14, r14
+    jge .right_right
+    jmp .rigth_left
+.z_is_left:
+    mov r14, [rsi+Node.left]
+    mov r14, [r14+Node.bf]
+    test r14, r14
+    jle .left_left
+    jmp .left_right
+.right_right:
+    call _avl_rotate_right
+    ret
+.right_left:
+    call _avl_rotate_right_left
+    ret
+.left_left:
+    call _avl_rotate_left
+    ret
+.left_right:
+    call _avl_rotate_left_right
+.exit:
+    ret
+
+;; void _avl_rotate_left(BST *, Node *)
+_avl_rotate_left:
+    ;; rdi -- BST*
+    ;; rsi -- Node*
+
+    ;;       P               P
+    ;;      /               /
+    ;;     X               Z
+    ;;    / \     =>      / \
+    ;;   Z   R*          ZL* X
+    ;;  / \                 / \
+    ;; ZL* ZR              ZR  R*
+
+    ;; P->left = X->left
+    mov r9, [rsi+Node.left]
+    mov r8, [rsi+Node.parent]
+    mov [r8+Node.left], r9
+
+    ;; X->left = Z->right
+    mov r10, [r9+Node.right]
+    mov [rsi+Node.left], r10
+
+    ;; Z->right = X
+    mov [r9+Node.right], rsi
+    ret
+
+_avl_rotate_right_left:
+    ;; rdi -- BST*
+    ;; rsi -- Node*
+    mov r15, rsi
+    mov rsi, [r15+Node.right]
+    call _avl_rotate_right
+    mov rsi, r15
+    call _avl_rotate_left
+    ret
+
+_avl_rotate_left_right:
+    ;; rdi -- BST*
+    ;; rsi -- Node*
+    mov r15, rsi
+    mov rsi, [r15+Node.left]
+    call _avl_rotate_left
+    mov rsi, r15
+    call _avl_rotate_right
+    ret
+
+;; @todo: test rebalance, rotate implementations are correct (especially the double rotations)
+;; @todo: update balance factors after rotation
 
 section .bss
 
