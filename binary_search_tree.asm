@@ -310,10 +310,10 @@ bst_inorder:
     pop rbp
     ret
 
-;; Entry *bst_remove(BST *, void *key)
+;; Entry *bst_remove(BST *, Entry *entry)
 bst_remove:
     ;; rdi -- BST*
-    ;; rsi -- key*
+    ;; rsi -- entry*
     lea r12, [rdi+BST.root]
     mov r14, rdi
     mov r15, rsi
@@ -322,14 +322,16 @@ bst_remove:
     test r9, r9
     jz .exit_nil
     mov rax, [r14+BST.key_cmp]
-    mov rdi, r15
+    mov rdi, [r15+Node.key]
     mov rsi, [r9+Node.key]
     call rax
     test rax, rax
     jl .less
     jg .greater
-
     ;; =
+    ;; multimap: is it the correct reference? (if not, continue searching to the right)
+    cmp r15, r9
+    jne .greater
     dec qword [r14+BST.size]
     ;; mark height as 'outdated'
     mov qword [r14+BST.height], 0
