@@ -75,34 +75,43 @@ U8 test_find_all(Arena *);
 U8 test_remove_height(Arena *);
 U8 test_remove_a_key_that_wont_be_found_first(Arena *);
 U8 test_string_key(Arena *arena);
+U8 test_avl_rebalance_right_right(Arena *arena);
+U8 test_avl_rebalance_right_left(Arena *arena);
+U8 test_avl_rebalance_left_left(Arena *arena);
+U8 test_avl_rebalance_left_right(Arena *arena);
 
 typedef U8 (*Test_Function)(Arena *);
 
 static Test_Function TEST_FUNCTIONS[] = {
-    test_insert,
-    test_remove,
-    test_remove2,
-    test_remove3,
-    test_remove4,
-    test_remove5,
-    test_find_all,
-    test_remove_height,
-    test_remove_a_key_that_wont_be_found_first,
-    test_string_key,
+    //test_insert,
+    //test_remove,
+    //test_remove2,
+    //test_remove3,
+    //test_remove4,
+    //test_remove5,
+    //test_find_all,
+    //test_remove_height,
+    //test_remove_a_key_that_wont_be_found_first,
+    //test_string_key,
+    test_avl_rebalance_right_right,
+    test_avl_rebalance_right_left,
+    test_avl_rebalance_left_left,
+    test_avl_rebalance_left_right,
     0,
 };
 
 int main(int argc, char **argv) {
     PAGE_SIZE = getpagesize();
     Arena *arena = arena_make(16*KB(4));
+    BST *bst = bst_make(arena, &u64_cmp);
 
+    /*
     char *v1 = push_array(arena, char, 14);
     memcpy(v1, "Hello, World!", 14);
 
     char *v2 = push_array(arena, char, 14);
     memcpy(v2, "Hello, Moon!!", 14);
 
-    BST *bst = bst_make(arena, &u64_cmp);
     bst_insert(bst, hoist_u64(arena, 5), v1);
     Entry *entry_one = bst_insert(bst, hoist_u64(arena, 1), v1);
     Entry *entry_seven = bst_insert(bst, hoist_u64(arena, 7), v1);
@@ -145,6 +154,7 @@ int main(int argc, char **argv) {
     //Entry *found2 = bst_remove(bst, hoist_u64(arena, 5));
     Entry *found2 = bst_remove(bst, entry_seven);
     assert(found2 && "not found (2) (but should be found)");
+    */
 
     bst_clear(bst);
 
@@ -465,5 +475,63 @@ test_string_key(Arena *arena) {
     Entry *removed = bst_remove(bst, second_one);
     TEST_ASSERT(removed != 0);
     TEST_ASSERT(removed == second_one);
+    return 1;
+}
+
+U8
+is_tree_balanced(BST *bst) {
+    return 0;
+}
+
+U8
+test_avl_rebalance_right_right(Arena *arena) {
+    BST *bst = bst_make(arena, &u64_cmp);
+    TEST_ASSERT(bst != 0);
+    U64 keys[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+    Node *e3 = (Node *) bst_insert(bst, &keys[3], 0);
+    TEST_ASSERT(e3->bf == 0);
+    Node *e10 = (Node *) bst_insert(bst, &keys[10], 0);
+    TEST_ASSERT(e3->bf == 1);
+    TEST_ASSERT(e10->bf == 0);
+    Node *e2 = (Node *) bst_insert(bst, &keys[2], 0);
+    TEST_ASSERT(e3->bf == 0);
+    TEST_ASSERT(e2->bf == 0);
+    TEST_ASSERT(e10->bf == 0);
+    Node *e11 = (Node *) bst_insert(bst, &keys[11], 0);
+    TEST_ASSERT(e3->bf == 1);
+    TEST_ASSERT(e2->bf == 0);
+    TEST_ASSERT(e10->bf == 1);
+    TEST_ASSERT(e11->bf == 0);
+    Node *e12 = (Node *) bst_insert(bst, &keys[12], 0);
+    TEST_ASSERT(e3->bf == 1);
+    TEST_ASSERT(e2->bf == 0);
+    TEST_ASSERT(e11->bf == 0);
+    TEST_ASSERT(e10->bf == 0);
+    TEST_ASSERT(e12->bf == 0);
+    TEST_ASSERT(is_tree_balanced(bst));
+    return 1;
+}
+
+U8
+test_avl_rebalance_right_left(Arena *arena) {
+    BST *bst = bst_make(arena, &u64_cmp);
+    TEST_ASSERT(bst != 0);
+    TEST_ASSERT(0);
+    return 1;
+}
+
+U8
+test_avl_rebalance_left_left(Arena *arena) {
+    BST *bst = bst_make(arena, &u64_cmp);
+    TEST_ASSERT(bst != 0);
+    TEST_ASSERT(0);
+    return 1;
+}
+
+U8
+test_avl_rebalance_left_right(Arena *arena) {
+    BST *bst = bst_make(arena, &u64_cmp);
+    TEST_ASSERT(bst != 0);
+    TEST_ASSERT(0);
     return 1;
 }

@@ -531,32 +531,6 @@ bst_size:
     mov rax, [rdi+BST.size]
     ret
 
-;; void _avl_rotate_right(BST *, Node *)
-_avl_rotate_right:
-    ;; rdi -- BST*
-    ;; rsi -- Node*
-
-    ;; P             P
-    ;;  \             \
-    ;;   X        =>   Z
-    ;;  / \           / \
-    ;; L*  Z         X  ZR*
-    ;;    / \       / \
-    ;;  ZL  ZR*    L*  ZL
-
-    ;; P->right = X->right (Z)
-    mov r9, [rsi+Node.right]
-    mov r8, [rsi+Node.parent]
-    mov [r8+Node.right], r9
-
-    ;; X->right = Z->left
-    mov r10, [r9+Node.left]
-    mov [rsi+Node.right], r10
-
-    ;; Z->left = X
-    mov [r9+Node.left], rsi
-    ret
-
 ;; void _avl_retrace(BST *, Node *)
 _avl_retrace:
     ;; rdi -- BST*
@@ -587,10 +561,10 @@ _avl_retrace:
 _avl_rebalance:
     ;; rdi -- BST*
     ;; rsi -- Node*
-    mov r15, [rsi+Node.bf]
-    cmp r15, 2
+    mov r15b, [rsi+Node.bf]
+    cmp r15b, 2
     je .z_is_right
-    cmp r15, -2
+    cmp r15b, -2
     je .z_is_left
     xor rax, rax
     jmp .exit
@@ -622,6 +596,32 @@ _avl_rebalance:
     call _avl_rotate_left_right
     mov rax, 4
 .exit:
+    ret
+
+;; void _avl_rotate_right(BST *, Node *)
+_avl_rotate_right:
+    ;; rdi -- BST*
+    ;; rsi -- Node*
+
+    ;; P             P
+    ;;  \             \
+    ;;   X        =>   Z
+    ;;  / \           / \
+    ;; L*  Z         X  ZR*
+    ;;    / \       / \
+    ;;  ZL  ZR*    L*  ZL
+
+    ;; P->right = X->right (Z)
+    mov r9, [rsi+Node.right]
+    mov r8, [rsi+Node.parent]
+    mov [r8+Node.right], r9
+
+    ;; X->right = Z->left
+    mov r10, [r9+Node.left]
+    mov [rsi+Node.right], r10
+
+    ;; Z->left = X
+    mov [r9+Node.left], rsi
     ret
 
 ;; void _avl_rotate_left(BST *, Node *)
