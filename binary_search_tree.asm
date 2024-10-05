@@ -13,10 +13,11 @@ extern arena_push, arena_pos, arena_pop, arena_pop_to, arena_clear
 global bst_make, bst_clear, bst_insert, bst_find, bst_find_all, bst_inorder, bst_remove, bst_height, bst_size
 
 struc BST
-    .size:   resq 1 ;; u64
-    .height: resq 1 ;; u64
-    .arena:  resq 1 ;; Arena*
-    .root:   resq 1 ;; Node*
+    .size:    resq 1 ;; u64
+    .height:  resq 1 ;; u64
+    .arena:   resq 1 ;; Arena*
+    .root:    resq 1 ;; Node*
+    .key_cmp: resq 1 ;; Function Pointer
 endstruc
 
 struc Entry
@@ -39,15 +40,18 @@ struc Entries
                      ;;         (that would cause the struct to be classified MEMORY instead of our desired INTEGER)
 endstruc
 
-;; BST *bst_make(Arena *)
+;; BST *bst_make(Arena *, Compare_Func key_cmp)
 bst_make:
     ;; rdi -- Arena*
+    ;; rsi -- Compare_Func
     mov r12, rdi
+    mov r13, rsi
 
     mov rsi, BST_size
     call arena_push
     ;; rax -- BST*
     mov [rax+BST.arena], r12
+    mov [rax+BST.key_cmp], r13
     ret
 
 ;; void bst_clear(BST *)
@@ -60,7 +64,7 @@ bst_clear:
 ;; Entry *bst_insert(BST *, Entry)
 bst_insert:
     ;; rdi -- BST*
-    ;; rsi -- key
+    ;; rsi -- key*
     ;; rdx -- value*
     push rbp
     mov rbp, rsp
@@ -68,7 +72,7 @@ bst_insert:
     ;;  [rsp+32]         -- u64 depth of insertion point
     ;;  [rsp+24]         -- Node** (where to insert new node)
     mov [rsp+16], rdx ;; -- value*
-    mov [rsp+8], rsi  ;; -- key
+    mov [rsp+8], rsi  ;; -- key*
     mov [rsp], rdi    ;; -- BST*
 
     call _find_insertion_point
@@ -105,10 +109,12 @@ bst_insert:
     pop rbp
     ret
 
-;; Node *_find(BST *, u64 key)
+;; Node *_find(BST *, void *key)
 _find_insertion_point:
     ;; rdi -- BST*
-    ;; rsi -- key
+    ;; rsi -- key*
+    mov r14, rdi
+    mov r15, rsi
 
     ;; rax -- current Node**
     ;; r8 -- current key
@@ -121,7 +127,12 @@ _find_insertion_point:
 
     inc rdx
     mov r8, [r9+Node.key]
-    cmp rsi, r8
+
+    mov rax, [r14+BST.key_cmp]
+    mov rdi, r15
+    mov rsi, r8
+    call rax
+    test rax, rax
     jl .less
     ;; >=
     lea rax, [r9+Node.right]
@@ -136,16 +147,21 @@ _find_insertion_point:
     ;; rdx -- u64 depth of insertion point
     ret
 
-;; Entry *bst_find(BST *, u64 key)
+;; Entry *bst_find(BST *, void *key)
 bst_find:
     ;; rdi -- BST*
-    ;; rsi -- key
+    ;; rsi -- key*
     mov r12, [rdi+BST.root]
+    mov r14, rdi
+    mov r15, rsi
 .find_loop:
     test r12, r12
     jz .exit_nil
-    mov r13, [r12+Node.key]
-    cmp rsi, r13
+    mov rax, [r14+BST.key_cmp]
+    mov rdi, r15
+    mov rsi, [r12+Node.key]
+    call rax
+    test rax, rax
     jl .less
     jg .greater
     ;; =
@@ -161,17 +177,17 @@ bst_find:
     xor rax, rax ;; not found, NIL
     ret
 
-;; Entries bst_find_all(BST *, Arena *, u64 key)
+;; Entries bst_find_all(BST *, Arena *, void *key)
 bst_find_all:
     ;; rdi -- BST*
     ;; rsi -- Arena*
-    ;; rdx -- key
+    ;; rdx -- key*
     push rbp
     mov rbp, rsp
     sub rsp, 40
     mov qword [rsp+32], 0   ;; -- Entries size
     ;;  [rsp+24]         -- save arena start pos (the position where Entries starts)
-    mov [rsp+16], rdx ;; -- key
+    mov [rsp+16], rdx ;; -- key*
     mov [rsp+8], rsi  ;; -- Arena*
     mov [rsp], rdi    ;; -- BST*
 
@@ -188,8 +204,12 @@ bst_find_all:
 .find_loop:
     test r12, r12
     jz .exit
-    mov r13, [r12+Node.key]
-    cmp [rsp+16], r13
+    mov rax, [rsp]
+    mov rax, [rax+BST.key_cmp]
+    mov rdi, [rsp+16]
+    mov rsi, [r12+Node.key]
+    call rax
+    test rax, rax
     jl .less
     jg .greater
     ;; =
@@ -290,24 +310,29 @@ bst_inorder:
     pop rbp
     ret
 
-;; Entry *bst_remove(BST *, u64 key)
+;; Entry *bst_remove(BST *, void *key)
 bst_remove:
     ;; rdi -- BST*
-    ;; rsi -- key
+    ;; rsi -- key*
     lea r12, [rdi+BST.root]
+    mov r14, rdi
+    mov r15, rsi
 .find_loop:
     mov r9, [r12]
     test r9, r9
     jz .exit_nil
-    mov r13, [r9+Node.key]
-    cmp rsi, r13
+    mov rax, [r14+BST.key_cmp]
+    mov rdi, r15
+    mov rsi, [r9+Node.key]
+    call rax
+    test rax, rax
     jl .less
     jg .greater
 
     ;; =
-    dec qword [rdi+BST.size]
+    dec qword [r14+BST.size]
     ;; mark height as 'outdated'
-    mov qword [rdi+BST.height], 0
+    mov qword [r14+BST.height], 0
 
     mov rdi, r9
     call _shift_node
@@ -329,6 +354,8 @@ bst_remove:
 _shift_node:
     ;; rdi -- Node*
     push r12
+    push r14
+    push r15
     mov r12, [rdi+Node.left]
     mov r13, [rdi+Node.right]
     test r12, r12
@@ -362,19 +389,27 @@ _shift_node:
     mov r15, [rdi+Node.left]
     mov [r13+Node.left], r15
     mov rax, r13 ;; return candidate
+    pop r15
+    pop r14
     pop r12
     ret
 
 .left_zero:
     mov rax, r13 ;; return right child
+    pop r15
+    pop r14
     pop r12
     ret
 .right_zero:
     mov rax, r12 ;; return left child
+    pop r15
+    pop r14
     pop r12
     ret
 .both_zero:
     xor rax, rax ;; return NIL
+    pop r15
+    pop r14
     pop r12
     ret
 
