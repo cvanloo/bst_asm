@@ -478,9 +478,23 @@ test_string_key(Arena *arena) {
     return 1;
 }
 
+static U8 node_is_balanced_val = 0;
+
+void
+node_is_balanced(Entry *e) {
+    if (node_is_balanced_val) {
+        S8 bf = ((Node*)e)->bf;
+        if (bf < -1 || bf > 1) {
+            node_is_balanced_val = 0;
+        }
+    }
+}
+
 U8
 is_tree_balanced(BST *bst) {
-    return 0;
+    node_is_balanced_val = 1;
+    bst_inorder(bst, &node_is_balanced);
+    return node_is_balanced_val;
 }
 
 U8
@@ -516,7 +530,9 @@ U8
 test_avl_rebalance_right_left(Arena *arena) {
     BST *bst = bst_make(arena, &u64_cmp);
     TEST_ASSERT(bst != 0);
+    U64 keys[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
     TEST_ASSERT(0);
+    TEST_ASSERT(is_tree_balanced(bst));
     return 1;
 }
 
@@ -524,7 +540,9 @@ U8
 test_avl_rebalance_left_left(Arena *arena) {
     BST *bst = bst_make(arena, &u64_cmp);
     TEST_ASSERT(bst != 0);
+    U64 keys[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
     TEST_ASSERT(0);
+    TEST_ASSERT(is_tree_balanced(bst));
     return 1;
 }
 
@@ -532,6 +550,10 @@ U8
 test_avl_rebalance_left_right(Arena *arena) {
     BST *bst = bst_make(arena, &u64_cmp);
     TEST_ASSERT(bst != 0);
+    U64 keys[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
     TEST_ASSERT(0);
+    TEST_ASSERT(is_tree_balanced(bst));
     return 1;
 }
+
+;; @todo: tests for rebalancing after a remove
