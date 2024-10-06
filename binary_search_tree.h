@@ -46,3 +46,4 @@ extern U64 bst_height(BST *);
 extern U64 bst_size(BST *);
 extern void bst_inorder(BST *, Entry_Callback cb);
 extern Entry *bst_remove(BST *, Entry *entry);
+extern U64 _bst_calc_height(BST *, Node *n);

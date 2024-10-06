@@ -443,6 +443,7 @@ struc Node_Height
 endstruc
 
 ;; u64 _bst_calc_height(BST *, Node* n)
+global _bst_calc_height
 _bst_calc_height:
     ;; rdi -- BST*
     ;; rsi -- Node*
@@ -455,6 +456,9 @@ _bst_calc_height:
     ;;  [rsp+16]    ;; -- top of stack
     mov [rsp+8], r8 ;; -- Arena*
     mov [rsp], rdi  ;; -- BST*
+
+    test rsi, rsi ;; node passed in was null
+    jz .exit
 
     xor r13, r13 ;; current path height
     mov r12, rsi ;; current node (start with n)
@@ -570,14 +574,14 @@ _avl_rebalance:
     jmp .exit
 .z_is_right:
     mov r14, [rsi+Node.right]
-    mov r14, [r14+Node.bf]
-    test r14, r14
+    mov r14b, [r14+Node.bf]
+    test r14b, r14b
     jge .right_right
     jmp .right_left
 .z_is_left:
     mov r14, [rsi+Node.left]
-    mov r14, [r14+Node.bf]
-    test r14, r14
+    mov r14b, [r14+Node.bf]
+    test r14b, r14b
     jle .left_left
     jmp .left_right
 .right_right:

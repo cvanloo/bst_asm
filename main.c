@@ -479,12 +479,21 @@ test_string_key(Arena *arena) {
 }
 
 static U8 node_is_balanced_val = 0;
+static BST *node_is_balanced_bst = 0;
 
 void
 node_is_balanced(Entry *e) {
     if (node_is_balanced_val) {
-        S8 bf = ((Node*)e)->bf;
-        if (bf < -1 || bf > 1) {
+        BST *bst = node_is_balanced_bst;
+        Node *n = (Node *) e;
+        U64 height_right = _bst_calc_height(bst, n->right); 
+        U64 height_left = _bst_calc_height(bst, n->left);
+        U64 bf = height_right - height_left;
+        if (bf != n->bf) {
+            printf("bf != n->bf\n");
+            node_is_balanced_val = 0;
+        } else if (n->bf < -1 || n->bf > 1) {
+            printf("n->bf not in [-1;1]\n");
             node_is_balanced_val = 0;
         }
     }
@@ -493,6 +502,7 @@ node_is_balanced(Entry *e) {
 U8
 is_tree_balanced(BST *bst) {
     node_is_balanced_val = 1;
+    node_is_balanced_bst = bst;
     bst_inorder(bst, &node_is_balanced);
     return node_is_balanced_val;
 }
@@ -541,7 +551,30 @@ test_avl_rebalance_left_left(Arena *arena) {
     BST *bst = bst_make(arena, &u64_cmp);
     TEST_ASSERT(bst != 0);
     U64 keys[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
-    TEST_ASSERT(0);
+    Node *e8 = (Node *) bst_insert(bst, &keys[8], 0);
+    TEST_ASSERT(e8->bf == 0);
+    TEST_ASSERT(is_tree_balanced(bst));
+    Node *e9 = (Node *) bst_insert(bst, &keys[9], 0);
+    TEST_ASSERT(e8->bf == 1);
+    TEST_ASSERT(e9->bf == 0);
+    TEST_ASSERT(is_tree_balanced(bst));
+    Node *e4 = (Node *) bst_insert(bst, &keys[4], 0);
+    TEST_ASSERT(e8->bf == 0);
+    TEST_ASSERT(e9->bf == 0);
+    TEST_ASSERT(e4->bf == 0);
+    TEST_ASSERT(is_tree_balanced(bst));
+    Node *e3 = (Node *) bst_insert(bst, &keys[3], 0);
+    TEST_ASSERT(e8->bf == -1);
+    TEST_ASSERT(e9->bf == 0);
+    TEST_ASSERT(e4->bf == -1);
+    TEST_ASSERT(e3->bf == 0);
+    TEST_ASSERT(is_tree_balanced(bst));
+    Node *e2 = (Node *) bst_insert(bst, &keys[2], 0);
+    TEST_ASSERT(e8->bf == -1);
+    TEST_ASSERT(e9->bf == 0);
+    TEST_ASSERT(e4->bf == 0);
+    TEST_ASSERT(e3->bf == 0);
+    TEST_ASSERT(e2->bf == 0);
     TEST_ASSERT(is_tree_balanced(bst));
     return 1;
 }
@@ -556,4 +589,4 @@ test_avl_rebalance_left_right(Arena *arena) {
     return 1;
 }
 
-;; @todo: tests for rebalancing after a remove
+// @todo: tests for rebalancing after a remove
