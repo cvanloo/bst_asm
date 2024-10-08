@@ -79,6 +79,7 @@ U8 test_avl_rebalance_right_right(Arena *arena);
 U8 test_avl_rebalance_right_left(Arena *arena);
 U8 test_avl_rebalance_left_left(Arena *arena);
 U8 test_avl_rebalance_left_right(Arena *arena);
+U8 test_avl_retrace_stop_recursion_at_root_of_smaller_subtree(Arena *arena);
 
 typedef U8 (*Test_Function)(Arena *);
 
@@ -97,6 +98,7 @@ static Test_Function TEST_FUNCTIONS[] = {
     test_avl_rebalance_right_left,
     test_avl_rebalance_left_left,
     test_avl_rebalance_left_right,
+	//test_avl_retrace_stop_recursion_at_root_of_smaller_subtree, @todo: unit test for correct retracing of balance factors
     0,
 };
 
@@ -540,9 +542,45 @@ U8
 test_avl_rebalance_right_left(Arena *arena) {
     BST *bst = bst_make(arena, &u64_cmp);
     TEST_ASSERT(bst != 0);
-    U64 keys[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
-    TEST_ASSERT(0);
+    U64 keys[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24};
     TEST_ASSERT(is_tree_balanced(bst));
+	Node *e5 = (Node *) bst_insert(bst, &keys[5], 0);
+	TEST_ASSERT(e5->bf == 0);
+    TEST_ASSERT(is_tree_balanced(bst));
+	Node *e2 = (Node *) bst_insert(bst, &keys[2], 0);
+	TEST_ASSERT(e5->bf == -1);
+	TEST_ASSERT(e2->bf == 0);
+    TEST_ASSERT(is_tree_balanced(bst));
+	Node *e23 = (Node *) bst_insert(bst, &keys[23], 0);
+	TEST_ASSERT(e5->bf == 0);
+	TEST_ASSERT(e2->bf == 0);
+	TEST_ASSERT(e23->bf == 0);
+    TEST_ASSERT(is_tree_balanced(bst));
+	Node *e24 = (Node *) bst_insert(bst, &keys[24], 0);
+	TEST_ASSERT(e5->bf == 1);
+	TEST_ASSERT(e2->bf == 0);
+	TEST_ASSERT(e23->bf == 1);
+	TEST_ASSERT(e24->bf == 0);
+    TEST_ASSERT(is_tree_balanced(bst));
+	Node *e20 = (Node *) bst_insert(bst, &keys[20], 0);
+	TEST_ASSERT(e5->bf == 1);
+	TEST_ASSERT(e2->bf == 0);
+	TEST_ASSERT(e23->bf == 0);
+	TEST_ASSERT(e24->bf == 0);
+	TEST_ASSERT(e20->bf == 0);
+    TEST_ASSERT(is_tree_balanced(bst));
+	Node *e21 = (Node *) bst_insert(bst, &keys[21], 0); // rotate right left must happen here
+	TEST_ASSERT(bst->root == e20);
+	TEST_ASSERT(bst->root->left == e5);
+	TEST_ASSERT(e5->bf == -1);
+	TEST_ASSERT(e2->bf == 0);
+	TEST_ASSERT(e23->bf == 0);
+	TEST_ASSERT(e24->bf == 0);
+	TEST_ASSERT(e20->bf == 0);
+	TEST_ASSERT(e21->bf == 0);
+    TEST_ASSERT(is_tree_balanced(bst));
+	//Node *e19 = (Node *) bst_insert(bst, &keys[19], 0);
+    //TEST_ASSERT(is_tree_balanced(bst));
     return 1;
 }
 
@@ -590,3 +628,11 @@ test_avl_rebalance_left_right(Arena *arena) {
 }
 
 // @todo: tests for rebalancing after a remove
+
+U8
+test_avl_retrace_stop_recursion_at_root_of_smaller_subtree(Arena *arena) {
+	BST *bst = bst_make(arena, &u64_cmp);
+	TEST_ASSERT(bst != 0);
+	TEST_ASSERT(0);
+	return 1;
+}

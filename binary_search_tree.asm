@@ -560,11 +560,12 @@ _avl_retrace:
     dec byte [r15+Node.bf]
     mov rsi, r15
     call _avl_rebalance
+	test rax, rax
     jz .retrace_loop
 .exit:
     ret
 
-;; void _avl_rebalance(BST *, Node *)
+;; bool<is re-balanced> _avl_rebalance(BST *, Node *)
 _avl_rebalance:
     ;; rdi -- BST*
     ;; rsi -- Node*
@@ -574,6 +575,9 @@ _avl_rebalance:
     cmp r15b, -2
     je .z_is_left
     xor rax, rax
+	cmp r15b, 0
+	jne .exit
+	mov rax, 5
     jmp .exit
 .z_is_right:
     mov r14, [rsi+Node.right]
