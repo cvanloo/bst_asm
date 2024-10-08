@@ -75,9 +75,9 @@ U8 test_find_all(Arena *);
 U8 test_remove_height(Arena *);
 U8 test_remove_a_key_that_wont_be_found_first(Arena *);
 U8 test_string_key(Arena *arena);
-U8 test_avl_rebalance_right_right(Arena *arena);
+U8 test_avl_rebalance_left(Arena *arena);
 U8 test_avl_rebalance_right_left(Arena *arena);
-U8 test_avl_rebalance_left_left(Arena *arena);
+U8 test_avl_rebalance_right(Arena *arena);
 U8 test_avl_rebalance_left_right(Arena *arena);
 U8 test_avl_retrace_stop_recursion_at_root_of_smaller_subtree(Arena *arena);
 
@@ -94,9 +94,9 @@ static Test_Function TEST_FUNCTIONS[] = {
     //test_remove_height,
     //test_remove_a_key_that_wont_be_found_first,
     //test_string_key,
-    test_avl_rebalance_right_right,
+    test_avl_rebalance_left,
     test_avl_rebalance_right_left,
-    test_avl_rebalance_left_left,
+    test_avl_rebalance_right,
     test_avl_rebalance_left_right,
 	//test_avl_retrace_stop_recursion_at_root_of_smaller_subtree, @todo: unit test for correct retracing of balance factors
     0,
@@ -510,7 +510,7 @@ is_tree_balanced(BST *bst) {
 }
 
 U8
-test_avl_rebalance_right_right(Arena *arena) {
+test_avl_rebalance_left(Arena *arena) {
     BST *bst = bst_make(arena, &u64_cmp);
     TEST_ASSERT(bst != 0);
     U64 keys[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
@@ -585,7 +585,7 @@ test_avl_rebalance_right_left(Arena *arena) {
 }
 
 U8
-test_avl_rebalance_left_left(Arena *arena) {
+test_avl_rebalance_right(Arena *arena) {
     BST *bst = bst_make(arena, &u64_cmp);
     TEST_ASSERT(bst != 0);
     U64 keys[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};

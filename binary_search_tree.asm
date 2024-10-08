@@ -583,14 +583,14 @@ _avl_rebalance:
     mov r14, [rsi+Node.right]
     mov r14b, [r14+Node.bf]
     test r14b, r14b
-    jge .right_right
-    jmp .right_left
+    jge .left_left  ;; X is unbalanced node, Z is right child and BF(Z) >= 0 --> rotate left
+    jmp .right_left ;; X is unbalanced node, Z is right child and BF(Z) < 0 --> rotate right, rotate left
 .z_is_left:
     mov r14, [rsi+Node.left]
     mov r14b, [r14+Node.bf]
     test r14b, r14b
-    jle .left_left
-    jmp .left_right
+    jle .right_right ;; Z is left child and BF(Z) <= 0 --> rotate left
+    jmp .left_right  ;; Z is left child and BF(Z2 > 0 --> rotate left, rotate right
 .right_right:
     call _avl_rotate_right
     mov rax, 1
@@ -609,8 +609,8 @@ _avl_rebalance:
 .exit:
     ret
 
-;; void _avl_rotate_right(BST *, Node *)
-_avl_rotate_right:
+;; void _avl_rotate_left(BST *, Node *)
+_avl_rotate_left:
     ;; rdi -- BST*
     ;; rsi -- Node*
 
@@ -638,8 +638,8 @@ _avl_rotate_right:
     mov byte [r9+Node.bf], 0
     ret
 
-;; void _avl_rotate_left(BST *, Node *)
-_avl_rotate_left:
+;; void _avl_rotate_right(BST *, Node *)
+_avl_rotate_right:
     ;; rdi -- BST*
     ;; rsi -- Node*
 
@@ -689,7 +689,6 @@ _avl_rotate_left_right:
 
 ;; @todo: test rebalance, rotate implementations are correct (especially the double rotations)
 ;; @todo: update balance factors after rotation
-;; @fixme: I think I confused left and right...
 
 section .bss
 
