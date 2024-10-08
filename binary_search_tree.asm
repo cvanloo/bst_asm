@@ -267,6 +267,9 @@ bst_inorder:
     mov rdi, [rsp]
     mov r12, [rdi+BST.root] ;; r12 keeps track of  current node
 
+	test r12, r12
+	jz .exit
+
 .inorder_loop:
     mov rdi, [rsp+24]
     test rdi, rdi
