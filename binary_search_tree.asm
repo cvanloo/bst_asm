@@ -592,6 +592,7 @@ _avl_rebalance:
     jle .right_right ;; Z is left child and BF(Z) <= 0 --> rotate left
     jmp .left_right  ;; Z is left child and BF(Z2 > 0 --> rotate left, rotate right
 .right_right:
+	xor rdx, rdx
     call _avl_rotate_right
     mov rax, 1
     ret
@@ -600,6 +601,7 @@ _avl_rebalance:
     mov rax, 2
     ret
 .left_left:
+	xor rdx, rdx
     call _avl_rotate_left
     mov rax, 3
     ret
@@ -613,8 +615,9 @@ _avl_rebalance:
 _avl_rotate_left:
     ;; rdi -- BST*
     ;; rsi -- Node*
+	;; rdx -- U8 (0 = simple, 1 = double)
 
-    ;; P             P
+    ;; P             P             (P.right in a simple rotation, P.left in a rotate_left_right)
     ;;  \             \
     ;;   X        =>   Z
     ;;  / \           / \
@@ -626,12 +629,20 @@ _avl_rotate_left:
     mov r9, [rsi+Node.right]
     mov r8, [rsi+Node.parent]
 	test r8, r8
-	jnz .assign_parent
-	mov [rdi+BST.root], r9
-	jmp .rewire
-.assign_parent:
-    mov [r8+Node.right], r9
-.rewire:
+	jz .reparent_root
+	test rdx, rdx
+	jz .simple
+.double:
+	lea r8, [r8+Node.left]
+	jmp .reparent
+.simple:
+	lea r8, [r8+Node.right]
+	jmp .reparent
+.reparent_root:
+	lea r8, [rdi+BST.root]
+.reparent:
+    mov [r8], r9
+
     ;; X->right = Z->left
     mov r10, [r9+Node.left]
     mov [rsi+Node.right], r10
@@ -647,8 +658,9 @@ _avl_rotate_left:
 _avl_rotate_right:
     ;; rdi -- BST*
     ;; rsi -- Node*
+	;; rdx -- U8 (0 = simple, 1 = double)
 
-    ;;       P               P
+    ;;       P               P        (P.left in a simple rotation, P.right in a rotate_right_left)
     ;;      /               /
     ;;     X               Z
     ;;    / \     =>      / \
@@ -658,14 +670,22 @@ _avl_rotate_right:
 
     ;; P->left = X->left
     mov r9, [rsi+Node.left]
-    mov r8, [rsi+Node.parent]
+	mov r8, [rsi+Node.parent]
 	test r8, r8
-	jnz .assign_parent
-	mov [rdi+BST.root], r9
-	jmp .rewire
-.assign_parent:
-    mov [r8+Node.left], r9
-.rewire:
+	jz .reparent_root
+	test rdx, rdx
+	jz .simple
+.double:
+	lea r8, [r8+Node.right]
+	jmp .reparent
+.simple:
+	lea r8, [r8+Node.left]
+	jmp .reparent
+.reparent_root:
+	lea r8, [rdi+BST.root]
+.reparent:
+	mov [r8], r9
+
     ;; X->left = Z->right
     mov r10, [r9+Node.right]
     mov [rsi+Node.left], r10
@@ -682,7 +702,8 @@ _avl_rotate_right_left:
     ;; rsi -- Node*
     mov r15, rsi
     mov rsi, [r15+Node.right]
-    call _avl_rotate_right ;; @fixme: but p.right = rsi
+	mov rdx, 1
+    call _avl_rotate_right
     mov rsi, r15
     call _avl_rotate_left
     ret
@@ -692,7 +713,8 @@ _avl_rotate_left_right:
     ;; rsi -- Node*
     mov r15, rsi
     mov rsi, [r15+Node.left]
-    call _avl_rotate_left ;; @fixme: but p.left = rsi
+	mov rdx, 1
+    call _avl_rotate_left
     mov rsi, r15
     call _avl_rotate_right
     ret
