@@ -625,8 +625,13 @@ _avl_rotate_left:
     ;; P->right = X->right (Z)
     mov r9, [rsi+Node.right]
     mov r8, [rsi+Node.parent]
+	test r8, r8
+	jnz .assign_parent
+	mov [rdi+BST.root], r9
+	jmp .rewire
+.assign_parent:
     mov [r8+Node.right], r9
-
+.rewire:
     ;; X->right = Z->left
     mov r10, [r9+Node.left]
     mov [rsi+Node.right], r10
@@ -654,8 +659,13 @@ _avl_rotate_right:
     ;; P->left = X->left
     mov r9, [rsi+Node.left]
     mov r8, [rsi+Node.parent]
+	test r8, r8
+	jnz .assign_parent
+	mov [rdi+BST.root], r9
+	jmp .rewire
+.assign_parent:
     mov [r8+Node.left], r9
-
+.rewire:
     ;; X->left = Z->right
     mov r10, [r9+Node.right]
     mov [rsi+Node.left], r10
@@ -689,6 +699,7 @@ _avl_rotate_left_right:
 
 ;; @todo: test rebalance, rotate implementations are correct (especially the double rotations)
 ;; @todo: update balance factors after rotation
+;; @fixme: make sure to always correctly reassign parents when rotating
 
 section .bss
 

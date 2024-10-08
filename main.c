@@ -569,7 +569,7 @@ test_avl_rebalance_right_left(Arena *arena) {
 	TEST_ASSERT(e24->bf == 0);
 	TEST_ASSERT(e20->bf == 0);
     TEST_ASSERT(is_tree_balanced(bst));
-	Node *e21 = (Node *) bst_insert(bst, &keys[21], 0); // rotate right left must happen here
+	Node *e21 = (Node *) bst_insert(bst, &keys[21], 0); // rotate right left must happen here // @todo: note that this involves reassigning bst->root, make another test case to check the usual case as well. Test both cases for rotate_right and for rotate_left
 	TEST_ASSERT(bst->root == e20);
 	TEST_ASSERT(bst->root->left == e5);
 	TEST_ASSERT(e5->bf == -1);
@@ -628,6 +628,7 @@ test_avl_rebalance_left_right(Arena *arena) {
 }
 
 // @todo: tests for rebalancing after a remove
+// @todo: when rotating and when removing a node, might need to clear out certain fields, such as parent, left, right
 
 U8
 test_avl_retrace_stop_recursion_at_root_of_smaller_subtree(Arena *arena) {
