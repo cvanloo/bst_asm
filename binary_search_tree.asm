@@ -682,7 +682,7 @@ _avl_rotate_right_left:
     ;; rsi -- Node*
     mov r15, rsi
     mov rsi, [r15+Node.right]
-    call _avl_rotate_right
+    call _avl_rotate_right ;; @fixme: but p.right = rsi
     mov rsi, r15
     call _avl_rotate_left
     ret
@@ -692,7 +692,7 @@ _avl_rotate_left_right:
     ;; rsi -- Node*
     mov r15, rsi
     mov rsi, [r15+Node.left]
-    call _avl_rotate_left
+    call _avl_rotate_left ;; @fixme: but p.left = rsi
     mov rsi, r15
     call _avl_rotate_right
     ret
