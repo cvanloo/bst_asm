@@ -592,17 +592,7 @@ _avl_rebalance:
     jle .right_right ;; Z is left child and BF(Z) <= 0 --> rotate left
     jmp .left_right  ;; Z is left child and BF(Z2 > 0 --> rotate left, rotate right
 .right_right:
-	mov r8, [rsi+Node.parent]
-	test r8, r8
-	jnz .rr_reassign_parent
-.rr_reassign_root:
-	lea r8, [rdi+BST.root]
-	jmp .rr_rotate
-.rr_reassign_parent:
-	lea r8, [r8+Node.left]
-.rr_rotate:
     call _avl_rotate_right
-	mov [r8], rax
     mov rax, 1
     ret
 .right_left:
@@ -610,17 +600,7 @@ _avl_rebalance:
     mov rax, 2
     ret
 .left_left:
-	mov r8, [rsi+Node.parent]
-	test r8, r8
-	jnz .ll_reassign_parent
-.ll_reassign_root:
-	lea r8, [rdi+BST.root]
-	jmp .ll_rotate
-.ll_reassign_parent:
-	lea r8, [r8+Node.right]
-.ll_rotate:
     call _avl_rotate_left
-	mov [r8], rax
     mov rax, 3
     ret
 .left_right:
@@ -642,23 +622,29 @@ _avl_rotate_left:
     ;;    / \       / \
     ;;  ZL  ZR*    L*  ZL
 
-    ;; P->right = X->right (Z) when called in simple rotation
-	;; P->left = X->right when called in double rotation (rotate_left_right)
-	;; bst->root = X->right when parent of X is the root
-    mov rax, [rsi+Node.right]
-
+    ;; P->right = X->right (Z)
+	;; root = X->right (Z) (if P is nil)
+    mov r9, [rsi+Node.right]
+    mov r8, [rsi+Node.parent]
+	test r8, r8
+	jnz .assign_parent
+	mov [rdi+BST.root], r9
+	jmp .rewire
+.assign_parent:
+    mov [r8+Node.right], r9
+.rewire:
     ;; X->right = Z->left
-    mov r10, [rax+Node.left]
+    mov r10, [r9+Node.left]
     mov [rsi+Node.right], r10
 
     ;; Z->left = X
-    mov [rax+Node.left], rsi
+    mov [r9+Node.left], rsi
 
     mov byte [rsi+Node.bf], 0
-    mov byte [rax+Node.bf], 0
+    mov byte [r9+Node.bf], 0
     ret
 
-;; Node*<replacement> _avl_rotate_right(BST *, Node *)
+;; void _avl_rotate_right(BST *, Node *)
 _avl_rotate_right:
     ;; rdi -- BST*
     ;; rsi -- Node*
@@ -671,11 +657,17 @@ _avl_rotate_right:
     ;;  / \                 / \
     ;; ZL* ZR              ZR  R*
 
-    ;; P->left = X->left when called in simple rotation
-	;; P->right = X->left when called in double rotation (rotate_right_left)
-	;; bst->root = X->left when parent of X is the root
+    ;; P->left = X->left
+	;; root = X->left (if P is nil)
     mov r9, [rsi+Node.left]
-
+    mov r8, [rsi+Node.parent]
+	test r8, r8
+	jnz .assign_parent
+	mov [rdi+BST.root], r9
+	jmp .rewire
+.assign_parent:
+    mov [r8+Node.left], r9
+.rewire:
     ;; X->left = Z->right
     mov r10, [r9+Node.right]
     mov [rsi+Node.left], r10
@@ -685,11 +677,9 @@ _avl_rotate_right:
 
     mov byte [rsi+Node.bf], 0
     mov byte [r9+Node.bf], 0
-
-	mov rax, r9
     ret
 
-_avl_rotate_right_left:
+_avl_rotate_right_left: ;; @todo: fixup
     ;; rdi -- BST*
     ;; rsi -- Node*
     mov r15, rsi
@@ -720,7 +710,7 @@ _avl_rotate_right_left:
 	mov [r8], rax
     ret
 
-_avl_rotate_left_right:
+_avl_rotate_left_right: ;; @todo: fixup
     ;; rdi -- BST*
     ;; rsi -- Node*
     mov r15, rsi
