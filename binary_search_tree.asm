@@ -592,8 +592,17 @@ _avl_rebalance:
     jle .right_right ;; Z is left child and BF(Z) <= 0 --> rotate left
     jmp .left_right  ;; Z is left child and BF(Z2 > 0 --> rotate left, rotate right
 .right_right:
-	xor rdx, rdx
+	mov r8, [rsi+Node.parent]
+	test r8, r8
+	jnz .rr_reassign_parent
+.rr_reassign_root:
+	lea r8, [rdi+BST.root]
+	jmp .rr_rotate
+.rr_reassign_parent:
+	lea r8, [r8+Node.left]
+.rr_rotate:
     call _avl_rotate_right
+	mov [r8], rax
     mov rax, 1
     ret
 .right_left:
@@ -601,8 +610,17 @@ _avl_rebalance:
     mov rax, 2
     ret
 .left_left:
-	xor rdx, rdx
+	mov r8, [rsi+Node.parent]
+	test r8, r8
+	jnz .ll_reassign_parent
+.ll_reassign_root:
+	lea r8, [rdi+BST.root]
+	jmp .ll_rotate
+.ll_reassign_parent:
+	lea r8, [r8+Node.right]
+.ll_rotate:
     call _avl_rotate_left
+	mov [r8], rax
     mov rax, 3
     ret
 .left_right:
@@ -615,9 +633,8 @@ _avl_rebalance:
 _avl_rotate_left:
     ;; rdi -- BST*
     ;; rsi -- Node*
-	;; rdx -- U8 (0 = simple, 1 = double)
 
-    ;; P             P             (P.right in a simple rotation, P.left in a rotate_left_right)
+    ;; P             P
     ;;  \             \
     ;;   X        =>   Z
     ;;  / \           / \
@@ -625,42 +642,28 @@ _avl_rotate_left:
     ;;    / \       / \
     ;;  ZL  ZR*    L*  ZL
 
-    ;; P->right = X->right (Z)
-    mov r9, [rsi+Node.right]
-    mov r8, [rsi+Node.parent]
-	test r8, r8
-	jz .reparent_root
-	test rdx, rdx
-	jz .simple
-.double:
-	lea r8, [r8+Node.left]
-	jmp .reparent
-.simple:
-	lea r8, [r8+Node.right]
-	jmp .reparent
-.reparent_root:
-	lea r8, [rdi+BST.root]
-.reparent:
-    mov [r8], r9
+    ;; P->right = X->right (Z) when called in simple rotation
+	;; P->left = X->right when called in double rotation (rotate_left_right)
+	;; bst->root = X->right when parent of X is the root
+    mov rax, [rsi+Node.right]
 
     ;; X->right = Z->left
-    mov r10, [r9+Node.left]
+    mov r10, [rax+Node.left]
     mov [rsi+Node.right], r10
 
     ;; Z->left = X
-    mov [r9+Node.left], rsi
+    mov [rax+Node.left], rsi
 
     mov byte [rsi+Node.bf], 0
-    mov byte [r9+Node.bf], 0
+    mov byte [rax+Node.bf], 0
     ret
 
-;; void _avl_rotate_right(BST *, Node *)
+;; Node*<replacement> _avl_rotate_right(BST *, Node *)
 _avl_rotate_right:
     ;; rdi -- BST*
     ;; rsi -- Node*
-	;; rdx -- U8 (0 = simple, 1 = double)
 
-    ;;       P               P        (P.left in a simple rotation, P.right in a rotate_right_left)
+    ;;       P               P
     ;;      /               /
     ;;     X               Z
     ;;    / \     =>      / \
@@ -668,23 +671,10 @@ _avl_rotate_right:
     ;;  / \                 / \
     ;; ZL* ZR              ZR  R*
 
-    ;; P->left = X->left
+    ;; P->left = X->left when called in simple rotation
+	;; P->right = X->left when called in double rotation (rotate_right_left)
+	;; bst->root = X->left when parent of X is the root
     mov r9, [rsi+Node.left]
-	mov r8, [rsi+Node.parent]
-	test r8, r8
-	jz .reparent_root
-	test rdx, rdx
-	jz .simple
-.double:
-	lea r8, [r8+Node.right]
-	jmp .reparent
-.simple:
-	lea r8, [r8+Node.left]
-	jmp .reparent
-.reparent_root:
-	lea r8, [rdi+BST.root]
-.reparent:
-	mov [r8], r9
 
     ;; X->left = Z->right
     mov r10, [r9+Node.right]
@@ -695,6 +685,8 @@ _avl_rotate_right:
 
     mov byte [rsi+Node.bf], 0
     mov byte [r9+Node.bf], 0
+
+	mov rax, r9
     ret
 
 _avl_rotate_right_left:
@@ -702,10 +694,30 @@ _avl_rotate_right_left:
     ;; rsi -- Node*
     mov r15, rsi
     mov rsi, [r15+Node.right]
-	mov rdx, 1
+	mov r8, [rsi+Node.parent]
+	test r8, r8
+	jnz .reassign_parent
+.reassign_root:
+	lea r8, [rdi+BST.root]
+	jmp .rotate_right
+.reassign_parent:
+	lea r8, [r8+Node.right]
+.rotate_right:
     call _avl_rotate_right
+	mov [r8], rax
+
     mov rsi, r15
+	mov r8, [rsi+Node.parent]
+	test r8, r8
+	jnz .reassign_parent2
+.reassign_root2:
+	lea r8, [rdi+BST.root]
+	jmp .rotate_left
+.reassign_parent2:
+	lea r8, [r8+Node.right]
+.rotate_left:
     call _avl_rotate_left
+	mov [r8], rax
     ret
 
 _avl_rotate_left_right:
@@ -713,10 +725,30 @@ _avl_rotate_left_right:
     ;; rsi -- Node*
     mov r15, rsi
     mov rsi, [r15+Node.left]
-	mov rdx, 1
+	mov r8, [rsi+Node.parent]
+	test r8, r8
+	jnz .reassign_parent
+.reassign_root:
+	lea r8, [rdi+BST.root] 
+	jmp .rotate_left
+.reassign_parent:
+	lea r8, [r8+Node.left]
+.rotate_left:
     call _avl_rotate_left
+	mov [r8], rax
+
     mov rsi, r15
+	mov r8, [rsi+Node.parent]
+	test r8, r8
+	jnz .reassign_parent2
+.reassign_root2:
+	lea r8, [rdi+BST.root]
+	jmp .rotate_right
+.reassign_parent2:
+	lea r8, [r8+Node.left]
+.rotate_right:
     call _avl_rotate_right
+	mov [r8], rax
     ret
 
 ;; @todo: test rebalance, rotate implementations are correct (especially the double rotations)
