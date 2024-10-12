@@ -679,66 +679,106 @@ _avl_rotate_right:
     mov byte [r9+Node.bf], 0
     ret
 
-_avl_rotate_right_left: ;; @todo: fixup
+_avl_rotate_right_left:
     ;; rdi -- BST*
     ;; rsi -- Node*
-    mov r15, rsi
-    mov rsi, [r15+Node.right]
-	mov r8, [rsi+Node.parent]
-	test r8, r8
-	jnz .reassign_parent
-.reassign_root:
-	lea r8, [rdi+BST.root]
-	jmp .rotate_right
-.reassign_parent:
-	lea r8, [r8+Node.right]
-.rotate_right:
-    call _avl_rotate_right
-	mov [r8], rax
 
-    mov rsi, r15
-	mov r8, [rsi+Node.parent]
-	test r8, r8
-	jnz .reassign_parent2
-.reassign_root2:
-	lea r8, [rdi+BST.root]
-	jmp .rotate_left
-.reassign_parent2:
-	lea r8, [r8+Node.right]
-.rotate_left:
-    call _avl_rotate_left
-	mov [r8], rax
+    ;; X         X
+    ;;  \         \
+    ;;   Z         ZL
+    ;;  / \    =>   \
+    ;; ZL  ZR        Z
+    ;;  \           / \
+    ;;   R         R   ZR
+
+    mov r8, rsi               ;; r8 = X (Z->parent)
+    mov rsi, [rsi+Node.right] ;; rsi = Z
+    mov r9, [rsi+Node.left]   ;; r9 = ZL
+    mov [r8+Node.right], r9   ;; X->right = ZL
+    mov r10, [r9+Node.right]
+    mov [rsi+Node.left], r10  ;; Z->left = R
+    mov [r9+Node.right], rsi  ;; ZL->right = Z
+
+    mov byte [rsi+Node.bf], 0
+
+    ;; X              ZL
+    ;;  \            /  \
+    ;;   ZL         X    Z
+    ;;  / \     =>      / \
+    ;; L   Z           R   ZR
+    ;;    / \
+    ;;   R   ZR
+
+    mov rsi, r8               ;; rsi = X
+    mov r9, [rsi+Node.right]  ;; r9 = ZL
+    mov r8, [rsi+Node.parent] ;; r8 = X->parent (may be nil)
+    test r8, r8
+    jnz .assign_parent
+    mov [rdi+BST.root], r9    ;; root = ZL
+    jmp .rotate
+.assign_parent:
+    mov [r8+Node.right], r9   ;; P->right = ZL
+.rotate:
+    mov r10, [r9+Node.left]
+    mov [rsi+Node.right], r10 ;; X->right = L
+    mov [r9+Node.left], rsi   ;; ZL->left = X
+
+    mov byte [rsi+Node.bf], 0
+    ;; X->bf = ?
+
+                            ;; rsi = X
+                            ;; r9 = ZL
+    mov r8, [r9+Node.right] ;; r8 = Z
+    mov r15b, [r9+Node.bf]
+    mov byte [r9+Node.bf], 0
+    test r15b, r15b
+    jg .bf_greater
+    jl .bf_lesser
+.bf_zero:
+    mov byte [rsi+Node.bf], 0
+    mov byte [r8+Node.bf], 0
+    ret
+.bf_greater:
+    mov byte [rsi+Node.bf], -1
+    mov byte [r8+Node.bf], 0
+    ret
+.bf_lesser:
+    mov byte [rsi+Node.bf], 0
+    mov byte [r8+Node.bf], 1
     ret
 
-_avl_rotate_left_right: ;; @todo: fixup
+_avl_rotate_left_right:
     ;; rdi -- BST*
     ;; rsi -- Node*
     mov r15, rsi
     mov rsi, [r15+Node.left]
-	mov r8, [rsi+Node.parent]
-	test r8, r8
-	jnz .reassign_parent
-.reassign_root:
-	lea r8, [rdi+BST.root] 
-	jmp .rotate_left
-.reassign_parent:
-	lea r8, [r8+Node.left]
+
+    mov r9, [rsi+Node.left]
+    mov r8, [rsi+Node.parent]
+    test r8, r8
+    jnz .assign_parent_left
+    mov [rdi+BST.root], r9
+    jmp .rotate_left
+.assign_parent_left:
+    mov [r8+Node.left], r9
 .rotate_left:
-    call _avl_rotate_left
-	mov [r8], rax
+    mov r10, [r9+Node.left]
+    mov [rsi+Node.right], r10
+    mov [r9+Node.left], rsi
 
     mov rsi, r15
-	mov r8, [rsi+Node.parent]
-	test r8, r8
-	jnz .reassign_parent2
-.reassign_root2:
-	lea r8, [rdi+BST.root]
-	jmp .rotate_right
-.reassign_parent2:
-	lea r8, [r8+Node.left]
+    mov r9, [rsi+Node.left]
+    mov r8, [rsi+Node.parent]
+    test r8, r8
+    jnz .assign_parent_right
+    mov [rdi+BST.root], r9
+    jmp .rotate_right
+.assign_parent_right:
+    mov [r8+Node.left], r9
 .rotate_right:
-    call _avl_rotate_right
-	mov [r8], rax
+    mov r10, [r9+Node.right]
+    mov [rsi+Node.left], r10
+    mov [r9+Node.right], rsi
     ret
 
 ;; @todo: test rebalance, rotate implementations are correct (especially the double rotations)
