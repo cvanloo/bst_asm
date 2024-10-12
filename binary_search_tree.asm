@@ -358,6 +358,7 @@ bst_remove:
     call _shift_node
     mov [r12], rax
     mov rax, r9
+    ;; @fixme: update parent
 
     ;; retrace and, if necessary, rebalance tree
     push rax
@@ -623,22 +624,29 @@ _avl_rotate_left:
     ;;  ZL  ZR*    L*  ZL
 
     ;; P->right = X->right (Z)
-	;; root = X->right (Z) (if P is nil)
+    ;; root = X->right (Z) (if P is nil)
     mov r9, [rsi+Node.right]
     mov r8, [rsi+Node.parent]
-	test r8, r8
-	jnz .assign_parent
-	mov [rdi+BST.root], r9
-	jmp .rewire
+    test r8, r8
+    jnz .assign_parent
+    mov [rdi+BST.root], r9
+    mov qword [r9+Node.parent], 0
+    jmp .rewire
 .assign_parent:
     mov [r8+Node.right], r9
+    mov [r9+Node.parent], r8
 .rewire:
     ;; X->right = Z->left
     mov r10, [r9+Node.left]
     mov [rsi+Node.right], r10
+    test r10, r10
+    jz .p1
+    mov [r10+Node.parent], rsi
+.p1:
 
     ;; Z->left = X
     mov [r9+Node.left], rsi
+    mov [rsi+Node.parent], r9
 
     mov byte [rsi+Node.bf], 0
     mov byte [r9+Node.bf], 0
@@ -658,22 +666,29 @@ _avl_rotate_right:
     ;; ZL* ZR              ZR  R*
 
     ;; P->left = X->left
-	;; root = X->left (if P is nil)
+    ;; root = X->left (if P is nil)
     mov r9, [rsi+Node.left]
     mov r8, [rsi+Node.parent]
-	test r8, r8
-	jnz .assign_parent
-	mov [rdi+BST.root], r9
-	jmp .rewire
+    test r8, r8
+    jnz .assign_parent
+    mov [rdi+BST.root], r9
+    mov qword [r9+Node.parent], 0
+    jmp .rewire
 .assign_parent:
     mov [r8+Node.left], r9
+    mov [r9+Node.parent], r8
 .rewire:
     ;; X->left = Z->right
     mov r10, [r9+Node.right]
     mov [rsi+Node.left], r10
+    test r10, r10
+    jz .p1
+    mov [r10+Node.parent], rsi
+.p1:
 
     ;; Z->right = X
     mov [r9+Node.right], rsi
+    mov [rsi+Node.parent], r9
 
     mov byte [rsi+Node.bf], 0
     mov byte [r9+Node.bf], 0
@@ -695,15 +710,21 @@ _avl_rotate_right_left:
     mov rsi, [rsi+Node.right] ;; rsi = Z
     mov r9, [rsi+Node.left]   ;; r9 = ZL
     mov [r8+Node.right], r9   ;; X->right = ZL
+    mov [r9+Node.parent], r8
     mov r10, [r9+Node.right]
     mov [rsi+Node.left], r10  ;; Z->left = R
+    test r10, r10
+    jz .p1
+    mov [r10+Node.parent], rsi
+.p1:
     mov [r9+Node.right], rsi  ;; ZL->right = Z
+    mov [rsi+Node.parent], r9
 
     ;; X              ZL
     ;;  \            /  \
     ;;   ZL         X    Z
-    ;;  / \     =>      / \
-    ;; L   Z           R   ZR
+    ;;  / \     =>   \  / \
+    ;; L   Z         L  R  ZR
     ;;    / \
     ;;   R   ZR
 
@@ -713,13 +734,20 @@ _avl_rotate_right_left:
     test r8, r8
     jnz .assign_parent
     mov [rdi+BST.root], r9    ;; root = ZL
+    mov qword [r9+Node.parent], 0
     jmp .rotate
 .assign_parent:
     mov [r8+Node.right], r9   ;; P->right = ZL
+    mov [r9+Node.parent], r8
 .rotate:
     mov r10, [r9+Node.left]
     mov [rsi+Node.right], r10 ;; X->right = L
+    test r10, r10
+    jz .p2
+    mov [r10+Node.parent], rsi
+.p2:
     mov [r9+Node.left], rsi   ;; ZL->left = X
+    mov [rsi+Node.parent], r9
 
     mov r8, [r9+Node.right] ;; rsi = X, r9 = ZL,  r8 = Z
     mov r15b, [r9+Node.bf]
@@ -756,9 +784,15 @@ _avl_rotate_left_right:
     mov rsi, [rsi+Node.left]  ;; rsi = Y
     mov r9, [rsi+Node.right]  ;; r9 = Z
     mov [r8+Node.left], r9    ;; X->left = Z
+    mov [r9+Node.parent], r8
     mov r10, [r9+Node.left]
     mov [rsi+Node.right], r10 ;; Y->right = ZL
+    test r10, r10
+    jz .p1
+    mov [r10+Node.parent], rsi
+.p1:
     mov [r9+Node.left], rsi   ;; Z->left = Y
+    mov [rsi+Node.parent], r9
 
     ;;        X        Z
     ;;       /        / \
@@ -774,13 +808,20 @@ _avl_rotate_left_right:
     test r8, r8
     jnz .assign_parent
     mov [rdi+BST.root], r9    ;; root = Z
+    mov qword [r9+Node.parent], 0
     jmp .rotate
 .assign_parent:
     mov [r8+Node.left], r9    ;; P->left = Z
+    mov [r9+Node.parent], r8
 .rotate:
     mov r10, [r9+Node.right]
     mov [rsi+Node.left], r10  ;; X->left = Z->right
+    test r10, r10
+    jz .p2
+    mov [r10+Node.parent], rsi
+.p2:
     mov [r9+Node.right], rsi  ;; Z->right = X
+    mov [rsi+Node.parent], r9
 
     mov r8, [r9+Node.left] ;; r8 = Y, r9 = Z, rsi = X
     mov r15b, [r9+Node.bf]
@@ -802,8 +843,7 @@ _avl_rotate_left_right:
     ret
 
 ;; @todo: test rebalance, rotate implementations are correct (especially the double rotations)
-;; @todo: update balance factors after rotation
-;; @fixme: make sure to always correctly reassign parents when rotating
+;; @fixme: correctly adjust hight when rotating
 
 section .bss
 
