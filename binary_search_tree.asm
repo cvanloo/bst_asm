@@ -688,6 +688,12 @@ _avl_rotate_left:
     mov [r9+Node.left], rsi
     mov [rsi+Node.parent], r9
 
+    mov r10b, [r9+Node.bf]
+    test r10b, r10b
+    jnz .bf_non_zero
+    mov byte [rsi+Node.bf], 1
+    mov byte [r9+Node.bf], -1
+.bf_non_zero:
     mov byte [rsi+Node.bf], 0
     mov byte [r9+Node.bf], 0
     ret
@@ -730,6 +736,12 @@ _avl_rotate_right:
     mov [r9+Node.right], rsi
     mov [rsi+Node.parent], r9
 
+    mov r10b, [r9+Node.bf]
+    test r10b, r10b
+    jnz .bf_non_zero
+    mov byte [rsi+Node.bf], 1
+    mov byte [r9+Node.bf], -1
+.bf_non_zero:
     mov byte [rsi+Node.bf], 0
     mov byte [r9+Node.bf], 0
     ret
@@ -883,7 +895,6 @@ _avl_rotate_left_right:
     ret
 
 ;; @todo: test rebalance, rotate implementations are correct (especially the double rotations)
-;; @fixme: correctly adjust hight when rotating
 ;; @todo: bulk and set operations (see Wikipedia:AVL_tree)
 
 section .bss
