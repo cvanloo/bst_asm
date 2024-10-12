@@ -2,6 +2,8 @@
 
 #include "arena.h"
 
+#define BST_OPT_AVL 1
+
 typedef S64 (*Compare_Func)(void *self, void *other);
 
 typedef struct Node Node;
@@ -27,6 +29,7 @@ struct BST {
     Arena *arena;
     Node *root;
     Compare_Func key_cmp;
+    U8 options;
 };
 
 typedef struct Entries Entries;

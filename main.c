@@ -75,6 +75,7 @@ U8 test_find_all(Arena *);
 U8 test_remove_height(Arena *);
 U8 test_remove_a_key_that_wont_be_found_first(Arena *);
 U8 test_string_key(Arena *arena);
+U8 test_avl_remove(Arena *);
 U8 test_avl_rebalance_left(Arena *arena);
 U8 test_avl_rebalance_right_left(Arena *arena);
 U8 test_avl_rebalance_right(Arena *arena);
@@ -94,6 +95,7 @@ static Test_Function TEST_FUNCTIONS[] = {
     test_remove_height,
     test_remove_a_key_that_wont_be_found_first,
     test_string_key,
+    test_avl_remove,
     test_avl_rebalance_left,
     test_avl_rebalance_right_left,
     test_avl_rebalance_right,
@@ -205,6 +207,50 @@ test_remove(Arena *arena) {
     Entry *e_twelve = bst_insert(bst, hoist_u64(arena, 12), 0);
     TEST_ASSERT(bst_size(bst) == 9);
     TEST_ASSERT(bst_height(bst) == 5);
+    Entry *r1 = bst_remove(bst, e_first_seven);
+    TEST_ASSERT(r1 == e_first_seven);
+    TEST_ASSERT((float*)(r1->val) == &first_seven);
+    TEST_ASSERT(bst_size(bst) == 8);
+    TEST_ASSERT(bst_height(bst) == 4);
+    Entry *f1 = bst_find(bst, hoist_u64(arena, 7));
+    TEST_ASSERT(f1 == e_second_seven);
+    TEST_ASSERT((float*)(f1->val) == &second_seven);
+    bst_remove(bst, e_six);
+    TEST_ASSERT(bst_size(bst) == 7);
+    TEST_ASSERT(bst_height(bst) == 3);
+    Node *f2 = (Node *) bst_find(bst, hoist_u64(arena, 9));
+    TEST_ASSERT(f2->left == (Node *) e_second_seven);
+    bst_remove(bst, e_twelve);
+    TEST_ASSERT(bst_size(bst) == 6);
+    TEST_ASSERT(bst_height(bst) == 3);
+    bst_remove(bst, e_nine);
+    TEST_ASSERT(bst_size(bst) == 5);
+    TEST_ASSERT(bst_height(bst) == 3);
+    TEST_ASSERT(bst->root->right == (Node *) e_second_seven);
+    bst_remove(bst, e_five);
+    TEST_ASSERT(bst->root == (Node *) e_second_seven);
+    TEST_ASSERT(bst_size(bst) == 4);
+    TEST_ASSERT(bst_height(bst) == 3);
+    return 1;
+}
+
+U8
+test_avl_remove(Arena *arena) {
+    BST *bst = bst_make(arena, &u64_cmp);
+    bst->options |= BST_OPT_AVL;
+    Entry *e_five = bst_insert(bst, hoist_u64(arena, 5), 0);
+    Entry *e_nine = bst_insert(bst, hoist_u64(arena, 9), 0);
+    Entry *e_six = bst_insert(bst, hoist_u64(arena, 6), 0);
+    bst_insert(bst, hoist_u64(arena, 2), 0);
+    bst_insert(bst, hoist_u64(arena, 1), 0);
+    bst_insert(bst, hoist_u64(arena, 3), 0);
+    float first_seven = 7.1;
+    float second_seven = 7.2;
+    Entry *e_first_seven = bst_insert(bst, hoist_u64(arena, 7), &first_seven);
+    Entry *e_second_seven = bst_insert(bst, hoist_u64(arena, 7), &second_seven);
+    Entry *e_twelve = bst_insert(bst, hoist_u64(arena, 12), 0);
+    TEST_ASSERT(bst_size(bst) == 9);
+    TEST_ASSERT(bst_height(bst) == 4);
     Entry *r1 = bst_remove(bst, e_first_seven);
     TEST_ASSERT(r1 == e_first_seven);
     TEST_ASSERT((float*)(r1->val) == &first_seven);
@@ -513,6 +559,7 @@ U8
 test_avl_rebalance_left(Arena *arena) {
     BST *bst = bst_make(arena, &u64_cmp);
     TEST_ASSERT(bst != 0);
+    bst->options |= BST_OPT_AVL;
     U64 keys[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
     Node *e3 = (Node *) bst_insert(bst, &keys[3], 0);
     TEST_ASSERT(e3->bf == 0);
@@ -542,6 +589,7 @@ U8
 test_avl_rebalance_right_left(Arena *arena) {
     BST *bst = bst_make(arena, &u64_cmp);
     TEST_ASSERT(bst != 0);
+    bst->options |= BST_OPT_AVL;
     U64 keys[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24};
     TEST_ASSERT(is_tree_balanced(bst));
     Node *e5 = (Node *) bst_insert(bst, &keys[5], 0);
@@ -588,6 +636,7 @@ U8
 test_avl_rebalance_right(Arena *arena) {
     BST *bst = bst_make(arena, &u64_cmp);
     TEST_ASSERT(bst != 0);
+    bst->options |= BST_OPT_AVL;
     U64 keys[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
     Node *e8 = (Node *) bst_insert(bst, &keys[8], 0);
     TEST_ASSERT(e8->bf == 0);
@@ -621,6 +670,7 @@ U8
 test_avl_rebalance_left_right(Arena *arena) {
     BST *bst = bst_make(arena, &u64_cmp);
     TEST_ASSERT(bst != 0);
+    bst->options |= BST_OPT_AVL;
     U64 keys[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24};
     TEST_ASSERT(is_tree_balanced(bst));
     Node *e20 = (Node *) bst_insert(bst, &keys[20], 0);
@@ -668,6 +718,7 @@ U8
 test_avl_retrace_stop_recursion_at_root_of_smaller_subtree(Arena *arena) {
 	BST *bst = bst_make(arena, &u64_cmp);
 	TEST_ASSERT(bst != 0);
+    bst->options |= BST_OPT_AVL;
 	TEST_ASSERT(0);
 	return 1;
 }

@@ -12,12 +12,15 @@ BITS 64
 extern arena_push, arena_pos, arena_pop, arena_pop_to, arena_clear
 global bst_make, bst_clear, bst_insert, bst_find, bst_find_all, bst_inorder, bst_remove, bst_height, bst_size
 
+%define BST_OPT_AVL 1
+
 struc BST
     .size:    resq 1 ;; u64
     .height:  resq 1 ;; u64
     .arena:   resq 1 ;; Arena*
     .root:    resq 1 ;; Node*
     .key_cmp: resq 1 ;; Function Pointer
+    .options: resb 1 ;; (BST.options & BST_OPT_AVL) ? AVL balancing : no balancing
 endstruc
 
 struc Entry
@@ -109,14 +112,17 @@ bst_insert:
     ;; current height > insertion point height should never happen!
 
 .exit:
+    mov r8b, [rdi+BST.options]
+    and r8b, BST_OPT_AVL
+    jz .exit_end
     ;; retrace and, if necessary, rebalance tree
     ;; rdi -- BST*
     push rax
     mov rsi, rax
     call _avl_retrace_insertion
-
     ;; rax -- new Entry*
     pop rax
+.exit_end:
     mov rsp, rbp
     pop rbp
     ret
@@ -360,12 +366,16 @@ bst_remove:
     mov rax, r9
     ;; @fixme: update parent
 
+    mov r8b, [r14+BST.options]
+    and r8b, BST_OPT_AVL
+    jz .exit_end
     ;; retrace and, if necessary, rebalance tree
     push rax
     mov rdi, r14
     mov rsi, rax
     call _avl_retrace_removal
     pop rax
+.exit_end:
     ret
 .less:
     lea r12, [r9+Node.left]
