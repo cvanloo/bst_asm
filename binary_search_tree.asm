@@ -113,7 +113,7 @@ bst_insert:
     ;; rdi -- BST*
     push rax
     mov rsi, rax
-    call _avl_retrace
+    call _avl_retrace_insertion
 
     ;; rax -- new Entry*
     pop rax
@@ -364,7 +364,7 @@ bst_remove:
     push rax
     mov rdi, r14
     mov rsi, rax
-    call _avl_retrace
+    call _avl_retrace_removal
     pop rax
     ret
 .less:
@@ -539,8 +539,8 @@ bst_size:
     mov rax, [rdi+BST.size]
     ret
 
-;; void _avl_retrace(BST *, Node *)
-_avl_retrace:
+;; void _avl_retrace_insertion(BST *, Node *)
+_avl_retrace_insertion:
     ;; rdi -- BST*
     ;; rsi -- Node*
 .retrace_loop:
@@ -561,9 +561,39 @@ _avl_retrace:
     dec byte [r15+Node.bf]
     mov rsi, r15
     call _avl_rebalance
-	test rax, rax
+    test rax, rax
     jz .retrace_loop
 .exit:
+    ;; we can stop retracing after a single rotation or if a balance factor changed from ±1 to 0
+    ret
+
+;; void _avl_retrace_removal(BST *, Node *)
+_avl_retrace_removal:
+    ;; rdi -- BST*
+    ;; rsi -- Node*
+.retrace_loop:
+    mov r15, [rsi+Node.parent]
+    test r15, r15
+    jz .exit
+    mov r14, [r15+Node.left]
+    cmp rsi, r14
+    je .coming_from_left
+.coming_from_right:
+    dec byte [r15+Node.bf]
+    mov rsi, r15
+    call _avl_rebalance
+    test rax, rax
+    jnz .retrace_loop
+    jmp .exit
+.coming_from_left:
+    inc byte [r15+Node.bf]
+    mov rsi, r15
+    call _avl_rebalance
+    test rax, rax
+    jnz .retrace_loop
+.exit:
+    ;; we can stop retracing after a balance factor changed from 0 to ±1
+    ;; n.b., rotating once (whether simple or double) might not be enough to bring the tree back into balance
     ret
 
 ;; bool<is re-balanced> _avl_rebalance(BST *, Node *)
@@ -576,9 +606,9 @@ _avl_rebalance:
     cmp r15b, -2
     je .z_is_left
     xor rax, rax
-	cmp r15b, 0
-	jne .exit
-	mov rax, 5
+    cmp r15b, 0
+    jne .exit
+    mov rax, 5
     jmp .exit
 .z_is_right:
     mov r14, [rsi+Node.right]
@@ -591,7 +621,7 @@ _avl_rebalance:
     mov r14b, [r14+Node.bf]
     test r14b, r14b
     jle .right_right ;; Z is left child and BF(Z) <= 0 --> rotate left
-    jmp .left_right  ;; Z is left child and BF(Z2 > 0 --> rotate left, rotate right
+    jmp .left_right  ;; Z is left child and BF(Z) > 0 --> rotate left, rotate right
 .right_right:
     call _avl_rotate_right
     mov rax, 1
@@ -844,6 +874,7 @@ _avl_rotate_left_right:
 
 ;; @todo: test rebalance, rotate implementations are correct (especially the double rotations)
 ;; @fixme: correctly adjust hight when rotating
+;; @todo: bulk and set operations (see Wikipedia:AVL_tree)
 
 section .bss
 
