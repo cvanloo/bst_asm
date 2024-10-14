@@ -341,7 +341,9 @@ bst_remove:
     lea r12, [rdi+BST.root]
     mov r14, rdi
     mov r15, rsi
+    xor r9, r9
 .find_loop:
+    mov r13, r9
     mov r9, [r12]
     test r9, r9
     jz .exit_nil
@@ -364,7 +366,10 @@ bst_remove:
     call _shift_node
     mov [r12], rax
     mov rax, r9
-    ;; @fixme: update parent
+    test rax, rax
+    jz .p1
+    mov [rax+Node.parent], r13
+.p1:
 
     mov r8b, [r14+BST.options]
     and r8b, BST_OPT_AVL
@@ -392,6 +397,7 @@ bst_remove:
 _shift_node:
     ;; rdi -- Node*
     push r12
+    push r13
     push r14
     push r15
     mov r12, [rdi+Node.left]
@@ -422,13 +428,20 @@ _shift_node:
     ;; switch candidate with right child of current_node
     mov r8, [r13+Node.right]
     mov [r14+Node.left], r8
+    test r8, r8
+    jz .p1
+    mov [r8+Node.parent], r14
+.p1:
     mov [r13+Node.right], r15
+    mov [r15+Node.parent], r13
 .candidate_is_right_child:
     mov r15, [rdi+Node.left]
     mov [r13+Node.left], r15
+    mov [r15+Node.parent], r13
     mov rax, r13 ;; return candidate
     pop r15
     pop r14
+    pop r13
     pop r12
     ret
 
@@ -436,18 +449,21 @@ _shift_node:
     mov rax, r13 ;; return right child
     pop r15
     pop r14
+    pop r13
     pop r12
     ret
 .right_zero:
     mov rax, r12 ;; return left child
     pop r15
     pop r14
+    pop r13
     pop r12
     ret
 .both_zero:
     xor rax, rax ;; return NIL
     pop r15
     pop r14
+    pop r13
     pop r12
     ret
 

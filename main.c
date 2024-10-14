@@ -234,6 +234,18 @@ test_remove(Arena *arena) {
     return 1;
 }
 
+static U8 node_is_parent_assigned_correctly_ok = 0;
+
+void
+node_is_parent_assigned_correctly(Entry *e) {
+    Node *n = (Node *) e;
+    if (node_is_parent_assigned_correctly_ok) {
+        if ((n->right && n != n->right->parent) || (n->left && n != n->left->parent)) {
+            node_is_parent_assigned_correctly_ok = 0;
+        }
+    }
+}
+
 U8
 test_avl_remove(Arena *arena) {
     BST *bst = bst_make(arena, &u64_cmp);
@@ -244,6 +256,11 @@ test_avl_remove(Arena *arena) {
     bst_insert(bst, hoist_u64(arena, 2), 0);
     bst_insert(bst, hoist_u64(arena, 1), 0);
     bst_insert(bst, hoist_u64(arena, 3), 0);
+    {
+        node_is_parent_assigned_correctly_ok = 1;
+        bst_inorder(bst, node_is_parent_assigned_correctly);
+        TEST_ASSERT(node_is_parent_assigned_correctly_ok);
+    }
     float first_seven = 7.1;
     float second_seven = 7.2;
     Entry *e_first_seven = bst_insert(bst, hoist_u64(arena, 7), &first_seven);
@@ -251,30 +268,60 @@ test_avl_remove(Arena *arena) {
     Entry *e_twelve = bst_insert(bst, hoist_u64(arena, 12), 0);
     TEST_ASSERT(bst_size(bst) == 9);
     TEST_ASSERT(bst_height(bst) == 4);
+    {
+        node_is_parent_assigned_correctly_ok = 1;
+        bst_inorder(bst, node_is_parent_assigned_correctly);
+        TEST_ASSERT(node_is_parent_assigned_correctly_ok);
+    }
     Entry *r1 = bst_remove(bst, e_first_seven);
     TEST_ASSERT(r1 == e_first_seven);
     TEST_ASSERT((float*)(r1->val) == &first_seven);
     TEST_ASSERT(bst_size(bst) == 8);
     TEST_ASSERT(bst_height(bst) == 4);
+    {
+        node_is_parent_assigned_correctly_ok = 1;
+        bst_inorder(bst, node_is_parent_assigned_correctly);
+        TEST_ASSERT(node_is_parent_assigned_correctly_ok);
+    }
     Entry *f1 = bst_find(bst, hoist_u64(arena, 7));
     TEST_ASSERT(f1 == e_second_seven);
     TEST_ASSERT((float*)(f1->val) == &second_seven);
     bst_remove(bst, e_six);
     TEST_ASSERT(bst_size(bst) == 7);
     TEST_ASSERT(bst_height(bst) == 3);
+    {
+        node_is_parent_assigned_correctly_ok = 1;
+        bst_inorder(bst, node_is_parent_assigned_correctly);
+        TEST_ASSERT(node_is_parent_assigned_correctly_ok);
+    }
     Node *f2 = (Node *) bst_find(bst, hoist_u64(arena, 9));
     TEST_ASSERT(f2->left == (Node *) e_second_seven);
     bst_remove(bst, e_twelve);
     TEST_ASSERT(bst_size(bst) == 6);
     TEST_ASSERT(bst_height(bst) == 3);
+    {
+        node_is_parent_assigned_correctly_ok = 1;
+        bst_inorder(bst, node_is_parent_assigned_correctly);
+        TEST_ASSERT(node_is_parent_assigned_correctly_ok);
+    }
     bst_remove(bst, e_nine);
     TEST_ASSERT(bst_size(bst) == 5);
     TEST_ASSERT(bst_height(bst) == 3);
     TEST_ASSERT(bst->root->right == (Node *) e_second_seven);
+    {
+        node_is_parent_assigned_correctly_ok = 1;
+        bst_inorder(bst, node_is_parent_assigned_correctly);
+        TEST_ASSERT(node_is_parent_assigned_correctly_ok);
+    }
     bst_remove(bst, e_five);
     TEST_ASSERT(bst->root == (Node *) e_second_seven);
     TEST_ASSERT(bst_size(bst) == 4);
     TEST_ASSERT(bst_height(bst) == 3);
+    {
+        node_is_parent_assigned_correctly_ok = 1;
+        bst_inorder(bst, node_is_parent_assigned_correctly);
+        TEST_ASSERT(node_is_parent_assigned_correctly_ok);
+    }
     return 1;
 }
 
