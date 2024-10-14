@@ -373,10 +373,12 @@ bst_remove:
     xor rsi, rsi
     test rax, rax
     jz .p1
+    push r13
     mov rsi, [rax+Node.parent] ;; start retracing from this node (action point)
     mov [rax+Node.parent], r13 ;; set new parent on replacement node
     mov r13b, [rdi+Node.bf]
     mov [rax+Node.bf], r13b    ;; replacement node gets bf of replaced (deleted) node
+    pop r13
 .p1:
     test rsi, rsi
     jnz .bf1
@@ -385,6 +387,10 @@ bst_remove:
     jnz .bf1
     mov rsi, rdi
 .bf1:
+    cmp rsi, r9
+    jne .not_current_node
+    mov rsi, r13
+.not_current_node:
 
     mov r8b, [r14+BST.options]
     and r8b, BST_OPT_AVL
@@ -466,7 +472,7 @@ _shift_node:
 
 .left_zero:
     mov rax, r13 ;; return right child
-    mov rdx, 1 ;; coming from right
+    ;; leave value of rdx
     pop r15
     pop r14
     pop r13
@@ -474,7 +480,7 @@ _shift_node:
     ret
 .right_zero:
     mov rax, r12 ;; return left child
-    mov rdx, 2 ;; coming from left
+    ;; leave value of rdx
     pop r15
     pop r14
     pop r13
@@ -629,7 +635,6 @@ _avl_retrace_removal:
     je .coming_from_left
     jmp .exit ;; shouldn't ever happen (@todo: make an assert)
 .retrace_loop:
-    mov r15, [rsi+Node.parent]
     test r15, r15
     jz .exit
     mov r14, [r15+Node.left]
@@ -638,6 +643,7 @@ _avl_retrace_removal:
 .coming_from_right:
     dec byte [r15+Node.bf]
     mov rsi, r15
+    mov r15, [rsi+Node.parent]
     call _avl_rebalance
     test rax, rax
     jnz .retrace_loop
@@ -645,6 +651,7 @@ _avl_retrace_removal:
 .coming_from_left:
     inc byte [r15+Node.bf]
     mov rsi, r15
+    mov r15, [rsi+Node.parent]
     call _avl_rebalance
     test rax, rax
     jnz .retrace_loop
@@ -657,6 +664,7 @@ _avl_retrace_removal:
 _avl_rebalance:
     ;; rdi -- BST*
     ;; rsi -- Node*
+    push r15
     mov r15b, [rsi+Node.bf]
     cmp r15b, 2
     je .z_is_right
@@ -682,19 +690,23 @@ _avl_rebalance:
 .right_right:
     call _avl_rotate_right
     mov rax, 1
+    pop r15
     ret
 .right_left:
     call _avl_rotate_right_left
     mov rax, 2
+    pop r15
     ret
 .left_left:
     call _avl_rotate_left
     mov rax, 3
+    pop r15
     ret
 .left_right:
     call _avl_rotate_left_right
     mov rax, 4
 .exit:
+    pop r15
     ret
 
 ;; void _avl_rotate_left(BST *, Node *)
