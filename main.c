@@ -253,7 +253,7 @@ test_avl_remove(Arena *arena) {
     Entry *e_five = bst_insert(bst, hoist_u64(arena, 5), 0);
     Entry *e_nine = bst_insert(bst, hoist_u64(arena, 9), 0);
     Entry *e_six = bst_insert(bst, hoist_u64(arena, 6), 0);
-    bst_insert(bst, hoist_u64(arena, 2), 0);
+    Entry *e_two = bst_insert(bst, hoist_u64(arena, 2), 0);
     bst_insert(bst, hoist_u64(arena, 1), 0);
     bst_insert(bst, hoist_u64(arena, 3), 0);
     {
@@ -314,7 +314,7 @@ test_avl_remove(Arena *arena) {
         TEST_ASSERT(node_is_parent_assigned_correctly_ok);
     }
     bst_remove(bst, e_five);
-    TEST_ASSERT(bst->root == (Node *) e_second_seven);
+    TEST_ASSERT(bst->root == (Node *) e_two);
     TEST_ASSERT(bst_size(bst) == 4);
     TEST_ASSERT(bst_height(bst) == 3);
     {

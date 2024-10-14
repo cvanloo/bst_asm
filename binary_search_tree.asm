@@ -380,6 +380,11 @@ bst_remove:
     mov [rax+Node.bf], r13b    ;; replacement node gets bf of replaced (deleted) node
     pop r13
 .p1:
+    test r13, r13
+    jnz .is_not_root
+    mov rsi, rax
+    jmp .not_current_node
+.is_not_root:
     test rsi, rsi
     jnz .bf1
     mov rsi, r13
