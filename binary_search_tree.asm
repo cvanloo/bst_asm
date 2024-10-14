@@ -105,6 +105,8 @@ bst_insert:
     mov rdi, [rsp]
     inc qword [rdi+BST.size]
     mov rsi, [rdi+BST.height]
+    test rsi, rsi
+    jz .exit ;; height marked out of date
     mov rdx, [rsp+32]
     cmp rdx, rsi
     jl .exit
@@ -562,6 +564,7 @@ _bst_calc_height:
     jmp .calc_loop
 
 .exit:
+    mov rdi, [rsp]
     mov rax, [rsp+32] ;; rax -- max height
     mov rsp, rbp
     pop rbp
@@ -576,6 +579,7 @@ bst_height:
     ;; rdi -- BST*
     mov rsi, [rdi+BST.root]
     call _bst_calc_height
+    mov [rdi+BST.height], rax
 .exit:
     ret
 
