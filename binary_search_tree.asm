@@ -342,6 +342,7 @@ bst_remove:
     mov r14, rdi
     mov r15, rsi
     xor r9, r9
+    xor rdx, rdx
 .find_loop:
     mov r13, r9
     mov r9, [r12]
@@ -363,30 +364,44 @@ bst_remove:
     mov qword [r14+BST.height], 0
 
     mov rdi, r9
+    push r9
     call _shift_node
+    ;; rdx contains direction
     mov [r12], rax
-    mov rax, r9
+    xor rsi, rsi
     test rax, rax
     jz .p1
-    mov [rax+Node.parent], r13
+    mov rsi, [rax+Node.parent] ;; start retracing from this node (action point)
+    mov [rax+Node.parent], r13 ;; set new parent on replacement node
+    mov r13b, [rdi+Node.bf]
+    mov [rax+Node.bf], r13b    ;; replacement node gets bf of replaced (deleted) node
 .p1:
+    test rsi, rsi
+    jnz .bf1
+    mov rsi, r13
+    test rsi, rsi
+    jnz .bf1
+    mov rsi, rdi
+.bf1:
 
     mov r8b, [r14+BST.options]
     and r8b, BST_OPT_AVL
     jz .exit_end
     ;; retrace and, if necessary, rebalance tree
-    push rax
     mov rdi, r14
-    mov rsi, rax
+    ;; rsi = action point (original parent of replacement candidate)
+    ;; rdx = direction (coming from nowhere = 0, right = 1, or left = 2)
     call _avl_retrace_removal
-    pop rax
 .exit_end:
+    pop rax
     ret
 .less:
     lea r12, [r9+Node.left]
+    mov rdx, 2
     jmp .find_loop
 .greater:
     lea r12, [r9+Node.right]
+    mov rdx, 1
     jmp .find_loop
 
 .exit_nil:
@@ -424,7 +439,9 @@ _shift_node:
 .candidate_found:
     mov r15, [rdi+Node.right]
     cmp r15, r13
+    mov rdx, 1 ;; coming from right
     je .candidate_is_right_child
+    mov rdx, 2 ;; coming from left
     ;; switch candidate with right child of current_node
     mov r8, [r13+Node.right]
     mov [r14+Node.left], r8
@@ -447,6 +464,7 @@ _shift_node:
 
 .left_zero:
     mov rax, r13 ;; return right child
+    mov rdx, 1 ;; coming from right
     pop r15
     pop r14
     pop r13
@@ -454,6 +472,7 @@ _shift_node:
     ret
 .right_zero:
     mov rax, r12 ;; return left child
+    mov rdx, 2 ;; coming from left
     pop r15
     pop r14
     pop r13
@@ -461,6 +480,7 @@ _shift_node:
     ret
 .both_zero:
     xor rax, rax ;; return NIL
+    ;; leave value of rdx
     pop r15
     pop r14
     pop r13
@@ -597,6 +617,13 @@ _avl_retrace_insertion:
 _avl_retrace_removal:
     ;; rdi -- BST*
     ;; rsi -- Node*
+    ;; rdx -- coming from right = 1 or left = 2
+    mov r15, rsi
+    cmp rdx, 1
+    je .coming_from_right
+    cmp rdx, 2
+    je .coming_from_left
+    jmp .exit ;; shouldn't ever happen (@todo: make an assert)
 .retrace_loop:
     mov r15, [rsi+Node.parent]
     test r15, r15
