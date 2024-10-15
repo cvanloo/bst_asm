@@ -273,6 +273,15 @@ test_avl_remove(Arena *arena) {
         bst_inorder(bst, node_is_parent_assigned_correctly);
         TEST_ASSERT(node_is_parent_assigned_correctly_ok);
     }
+    TEST_ASSERT(bst->root->bf == 1);
+    TEST_ASSERT(bst->root->left->bf == 0);
+    TEST_ASSERT(bst->root->left->right->bf == 0);
+    TEST_ASSERT(bst->root->left->left->bf == 0);
+    TEST_ASSERT(bst->root->right->bf == 1);
+    TEST_ASSERT(bst->root->right->left->bf == 0);
+    TEST_ASSERT(bst->root->right->right->bf == 0);
+    TEST_ASSERT(bst->root->right->right->right->bf == 0);
+    TEST_ASSERT(bst->root->right->right->left->bf == 0);
     Entry *r1 = bst_remove(bst, e_first_seven);
     TEST_ASSERT(r1 == e_first_seven);
     TEST_ASSERT((float*)(r1->val) == &first_seven);
@@ -286,6 +295,14 @@ test_avl_remove(Arena *arena) {
     Entry *f1 = bst_find(bst, hoist_u64(arena, 7));
     TEST_ASSERT(f1 == e_second_seven);
     TEST_ASSERT((float*)(f1->val) == &second_seven);
+    TEST_ASSERT(bst->root->bf == 1);
+    TEST_ASSERT(bst->root->left->bf == 0);
+    TEST_ASSERT(bst->root->left->right->bf == 0);
+    TEST_ASSERT(bst->root->left->left->bf == 0);
+    TEST_ASSERT(bst->root->right->bf == 1);
+    TEST_ASSERT(bst->root->right->left->bf == 0);
+    TEST_ASSERT(bst->root->right->right->bf == 1);
+    TEST_ASSERT(bst->root->right->right->right->bf == 0);
     bst_remove(bst, e_six);
     TEST_ASSERT(bst_size(bst) == 7);
     TEST_ASSERT(bst_height(bst) == 3);
@@ -296,6 +313,14 @@ test_avl_remove(Arena *arena) {
     }
     Node *f2 = (Node *) bst_find(bst, hoist_u64(arena, 9));
     TEST_ASSERT(f2->left == (Node *) e_second_seven);
+    // perfectly balanced, as all things should be
+    TEST_ASSERT(bst->root->bf == 0);
+    TEST_ASSERT(bst->root->left->bf == 0);
+    TEST_ASSERT(bst->root->left->right->bf == 0);
+    TEST_ASSERT(bst->root->left->left->bf == 0);
+    TEST_ASSERT(bst->root->right->bf == 0);
+    TEST_ASSERT(bst->root->right->right->bf == 0);
+    TEST_ASSERT(bst->root->right->left->bf == 0);
     bst_remove(bst, e_twelve);
     TEST_ASSERT(bst_size(bst) == 6);
     TEST_ASSERT(bst_height(bst) == 3);
@@ -304,6 +329,12 @@ test_avl_remove(Arena *arena) {
         bst_inorder(bst, node_is_parent_assigned_correctly);
         TEST_ASSERT(node_is_parent_assigned_correctly_ok);
     }
+    TEST_ASSERT(bst->root->bf == 0);
+    TEST_ASSERT(bst->root->left->bf == 0);
+    TEST_ASSERT(bst->root->left->right->bf == 0);
+    TEST_ASSERT(bst->root->left->left->bf == 0);
+    TEST_ASSERT(bst->root->right->bf == -1);
+    TEST_ASSERT(bst->root->right->left->bf == 0);
     bst_remove(bst, e_nine);
     TEST_ASSERT(bst_size(bst) == 5);
     TEST_ASSERT(bst_height(bst) == 3);
@@ -313,6 +344,11 @@ test_avl_remove(Arena *arena) {
         bst_inorder(bst, node_is_parent_assigned_correctly);
         TEST_ASSERT(node_is_parent_assigned_correctly_ok);
     }
+    TEST_ASSERT(bst->root->bf == -1);
+    TEST_ASSERT(bst->root->left->bf == 0);
+    TEST_ASSERT(bst->root->left->right->bf == 0);
+    TEST_ASSERT(bst->root->left->left->bf == 0);
+    TEST_ASSERT(bst->root->right->bf == 0);
     bst_remove(bst, e_five);
     TEST_ASSERT(bst->root == (Node *) e_two);
     TEST_ASSERT(bst_size(bst) == 4);

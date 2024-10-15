@@ -373,19 +373,17 @@ bst_remove:
     xor rsi, rsi
     test rax, rax
     jz .replace_with_nil
-    push r13
     mov rsi, [rax+Node.parent] ;; start retracing from this node (action point)
     mov [rax+Node.parent], r13 ;; set new parent on replacement node
-    mov r13b, [rdi+Node.bf]
-    mov [rax+Node.bf], r13b    ;; replacement node gets bf of replaced (deleted) node
-    pop r13
+    mov r15b, [rdi+Node.bf]
+    mov [rax+Node.bf], r15b    ;; replacement node gets bf of replaced (deleted) node
     test r13, r13 ;; root was deleted, is being replaced by a child
     jz .replace_with_new_in_same_pos
-    cmp rsi, r9
+    cmp rsi, r9   ;; action point is the deleted node, now replaced by replacement candidate
     je .replace_with_new_in_same_pos
     jmp .retrace
 .replace_with_new_in_same_pos:
-    mov rsi, rax ;; action point = new node in same position
+    mov rsi, rax ;; action point = replacement node
     jmp .retrace
 .replace_with_nil:
     mov rsi, r13 ;; action point = parent of deleted node
