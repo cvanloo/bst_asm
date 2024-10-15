@@ -322,6 +322,10 @@ test_avl_remove(Arena *arena) {
         bst_inorder(bst, node_is_parent_assigned_correctly);
         TEST_ASSERT(node_is_parent_assigned_correctly_ok);
     }
+    TEST_ASSERT(bst->root->bf == 1);
+    TEST_ASSERT(bst->root->left->bf == 0);
+    TEST_ASSERT(bst->root->right->bf == -1);
+    TEST_ASSERT(bst->root->right->left->bf == 0);
     return 1;
 }
 

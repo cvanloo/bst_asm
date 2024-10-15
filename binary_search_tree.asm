@@ -372,31 +372,25 @@ bst_remove:
     mov [r12], rax
     xor rsi, rsi
     test rax, rax
-    jz .p1
+    jz .replace_with_nil
     push r13
     mov rsi, [rax+Node.parent] ;; start retracing from this node (action point)
     mov [rax+Node.parent], r13 ;; set new parent on replacement node
     mov r13b, [rdi+Node.bf]
     mov [rax+Node.bf], r13b    ;; replacement node gets bf of replaced (deleted) node
     pop r13
-.p1:
-    test r13, r13
-    jnz .is_not_root
-    mov rsi, rax
-    jmp .not_current_node
-.is_not_root:
-    test rsi, rsi
-    jnz .bf1
-    mov rsi, r13
-    test rsi, rsi
-    jnz .bf1
-    mov rsi, rdi
-.bf1:
+    test r13, r13 ;; root was deleted, is being replaced by a child
+    jz .replace_with_new_in_same_pos
     cmp rsi, r9
-    jne .not_current_node
-    mov rsi, r13
-.not_current_node:
-
+    je .replace_with_new_in_same_pos
+    jmp .retrace
+.replace_with_new_in_same_pos:
+    mov rsi, rax ;; action point = new node in same position
+    jmp .retrace
+.replace_with_nil:
+    mov rsi, r13 ;; action point = parent of deleted node
+    ;; jmp .retrace
+.retrace:
     mov r8b, [r14+BST.options]
     and r8b, BST_OPT_AVL
     jz .exit_end
@@ -477,7 +471,7 @@ _shift_node:
 
 .left_zero:
     mov rax, r13 ;; return right child
-    ;; leave value of rdx
+    mov rdx, 1
     pop r15
     pop r14
     pop r13
@@ -485,7 +479,7 @@ _shift_node:
     ret
 .right_zero:
     mov rax, r12 ;; return left child
-    ;; leave value of rdx
+    mov rdx, 2
     pop r15
     pop r14
     pop r13
@@ -757,6 +751,7 @@ _avl_rotate_left:
     jnz .bf_non_zero
     mov byte [rsi+Node.bf], 1
     mov byte [r9+Node.bf], -1
+    ret
 .bf_non_zero:
     mov byte [rsi+Node.bf], 0
     mov byte [r9+Node.bf], 0
@@ -803,8 +798,9 @@ _avl_rotate_right:
     mov r10b, [r9+Node.bf]
     test r10b, r10b
     jnz .bf_non_zero
-    mov byte [rsi+Node.bf], 1
-    mov byte [r9+Node.bf], -1
+    mov byte [rsi+Node.bf], -1
+    mov byte [r9+Node.bf], 1
+    ret
 .bf_non_zero:
     mov byte [rsi+Node.bf], 0
     mov byte [r9+Node.bf], 0
