@@ -76,6 +76,7 @@ U8 test_remove_height(Arena *);
 U8 test_remove_a_key_that_wont_be_found_first(Arena *);
 U8 test_string_key(Arena *arena);
 U8 test_avl_remove(Arena *);
+U8 test_avl_remove2(Arena *);
 U8 test_avl_rebalance_left(Arena *arena);
 U8 test_avl_rebalance_right_left(Arena *arena);
 U8 test_avl_rebalance_right(Arena *arena);
@@ -96,6 +97,7 @@ static Test_Function TEST_FUNCTIONS[] = {
     test_remove_a_key_that_wont_be_found_first,
     test_string_key,
     test_avl_remove,
+    test_avl_remove2,
     test_avl_rebalance_left,
     test_avl_rebalance_right_left,
     test_avl_rebalance_right,
@@ -385,6 +387,31 @@ test_remove2(Arena *arena) {
     TEST_ASSERT(r1 == root);
     TEST_ASSERT(bst_size(bst) == 8);
     TEST_ASSERT(bst_height(bst) == 4);
+    return 1;
+}
+
+U8
+test_avl_remove2(Arena *arena) {
+    BST *bst = bst_make(arena, &u64_cmp);
+    bst->options |= BST_OPT_AVL;
+    Entry *root = bst_insert(bst, hoist_u64(arena, 5), 0);
+    bst_insert(bst, hoist_u64(arena, 9), 0);
+    bst_insert(bst, hoist_u64(arena, 6), 0);
+    bst_insert(bst, hoist_u64(arena, 2), 0);
+    bst_insert(bst, hoist_u64(arena, 1), 0);
+    bst_insert(bst, hoist_u64(arena, 3), 0);
+    float first_seven = 7.1;
+    float second_seven = 7.2;
+    bst_insert(bst, hoist_u64(arena, 7), &first_seven);
+    Entry *e1 = bst_insert(bst, hoist_u64(arena, 7), &second_seven);
+    bst_insert(bst, hoist_u64(arena, 12), 0);
+    TEST_ASSERT(bst_size(bst) == 9);
+    TEST_ASSERT(bst_height(bst) == 4);
+    Entry *r1 = bst_remove(bst, root);
+    TEST_ASSERT(r1 == root);
+    TEST_ASSERT(bst_size(bst) == 8);
+    TEST_ASSERT(bst_height(bst) == 4);
+    // @fixme: the tree is actually left unbalanced!!!
     return 1;
 }
 
